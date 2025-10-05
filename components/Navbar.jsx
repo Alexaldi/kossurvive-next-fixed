@@ -15,6 +15,8 @@ const navigationLinks = [
     { href: "/onboarding", label: "Pilih Makanan" },
 ]
 
+const hiddenRoutes = ["/login", "/register", "/auth/callback"]
+
 export default function Navbar() {
     const isSupabaseConfigured = Boolean(
         process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -179,6 +181,10 @@ export default function Navbar() {
         router.refresh()
     }
 
+    if (hiddenRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+        return null
+    }
+
     if (userState.loading) {
         return null
     }
@@ -194,7 +200,7 @@ export default function Navbar() {
                 <nav className="flex h-20 items-center justify-between gap-6">
                     {/* Logo */}
                     <div className="flex flex-1 items-center gap-4">
-                        <Link href="/" className="flex items-center gap-3">
+                        <Link href="/home" className="flex items-center gap-3">
                             <Image
                                 src="/Logo.png"
                                 alt="KoSurvive Logo"
