@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -16,6 +16,8 @@ export default function Navbar() {
         email: null,
         avatarUrl: null,
     })
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const profileButtonRef = useRef(null)
 
     const displayInitial = useMemo(() => {
         const source = userState.displayName ?? userState.email ?? ""
@@ -74,6 +76,26 @@ export default function Navbar() {
         }
     }, [supabase])
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                profileButtonRef.current &&
+                !profileButtonRef.current.contains(event.target)
+            ) {
+                setIsDropdownOpen(false)
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [])
+
+    const toggleDropdown = () => {
+        setIsDropdownOpen((previous) => !previous)
+    }
+
     const handleLogout = async () => {
         const confirmLogout = window.confirm("Yakin mau logout?")
         if (!confirmLogout) return
@@ -89,9 +111,9 @@ export default function Navbar() {
 
     return (
         <header className="border-b border-gray-800 bg-transparent backdrop-blur-lg">
-            <nav className="container mx-auto flex items-center justify-between py-4 px-6">
+            <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-8 px-6 py-4">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex flex-shrink-0 items-center gap-2">
                     <Image
                         src="/Logo.png"
                         alt="KoSurvive Logo"
@@ -103,64 +125,88 @@ export default function Navbar() {
                 </Link>
 
                 {/* Tabs */}
-                <div className="flex gap-4">
+                <div className="hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-gray-300 lg:flex">
                     <Link
                         href="/feed"
-                        className="text-gray-300 hover:text-white transition font-medium"
+                        className="transition hover:text-white"
                     >
                         Makanan Sehat
                     </Link>
                     <Link
                         href="/olahraga"
-                        className="text-gray-300 hover:text-white transition font-medium"
+                        className="transition hover:text-white"
                     >
                         Olahraga
                     </Link>
                     <Link
                         href="/belajar"
-                        className="text-gray-300 hover:text-white transition font-medium"
+                        className="transition hover:text-white"
                     >
                         Belajar
                     </Link>
                     <Link
                         href="/onboarding"
-                        className="text-gray-300 hover:text-white transition font-medium"
+                        className="transition hover:text-white"
                     >
                         Pilih Makanan
                     </Link>
                 </div>
 
                 {/* User info & Logout */}
-                <div className="flex items-center gap-4">
+                <div className="relative flex flex-shrink-0 items-center">
                     {userState.loading ? (
-                        <div className="h-9 w-24 animate-pulse rounded-full bg-gray-700/60" aria-hidden="true" />
+                        <div
+                            className="h-10 w-10 animate-pulse rounded-full bg-gray-700/60"
+                            aria-hidden="true"
+                        />
                     ) : userState.displayName ? (
-                        <div className="flex items-center gap-2 rounded-full bg-gray-800/70 px-3 py-1">
+                        <button
+                            ref={profileButtonRef}
+                            onClick={toggleDropdown}
+                            className="flex items-center gap-3 rounded-full bg-gray-800/80 px-3 py-2 text-left text-sm text-gray-100 transition hover:bg-gray-700/70"
+                            aria-haspopup="menu"
+                            aria-expanded={isDropdownOpen}
+                        >
                             {userState.avatarUrl ? (
                                 <Image
                                     src={userState.avatarUrl}
                                     alt={userState.displayName}
-                                    width={32}
-                                    height={32}
-                                    className="h-8 w-8 rounded-full object-cover"
+                                    width={36}
+                                    height={36}
+                                    className="h-9 w-9 rounded-full object-cover"
                                 />
                             ) : displayInitial ? (
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
                                     {displayInitial}
                                 </span>
                             ) : null}
-                            <span className="text-sm font-medium text-gray-100">{userState.displayName}</span>
-                        </div>
+                            <span className="font-medium">{userState.displayName}</span>
+                        </button>
                     ) : (
-                        <span className="text-sm text-gray-300">Tamu</span>
+                        <Link
+                            href="/login"
+                            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                        >
+                            Masuk
+                        </Link>
                     )}
 
-                    <button
-                        onClick={handleLogout}
-                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold hover:opacity-90 transition"
-                    >
-                        Logout
-                    </button>
+                    {isDropdownOpen && (
+                        <div
+                            role="menu"
+                            aria-orientation="vertical"
+                            className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-900/95 shadow-lg backdrop-blur"
+                        >
+                            <button
+                                onClick={handleLogout}
+                                className="flex w-full items-center justify-between px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-gray-800"
+                                role="menuitem"
+                            >
+                                Logout
+                                <span aria-hidden>↩</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </nav>
         </header>
