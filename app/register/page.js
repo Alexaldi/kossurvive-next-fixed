@@ -15,14 +15,14 @@ export default function RegisterPage() {
     const [message, setMessage] = useState("")
     const searchParams = useSearchParams()
     const nextParam = useMemo(() => {
-        const value = searchParams?.get("next") ?? "/"
-        return value.startsWith("/") ? value : "/"
+        const value = searchParams?.get("next") ?? "/home"
+        return value.startsWith("/") ? value : "/home"
     }, [searchParams])
 
     const buildCallbackUrl = () => {
         const basePath = "/auth/callback"
         const url = new URL(basePath, window.location.origin)
-        if (nextParam && nextParam !== "/") {
+        if (nextParam && nextParam !== "/home") {
             url.searchParams.set("next", nextParam)
         }
         return `${url.pathname}${url.search}`

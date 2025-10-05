@@ -6,7 +6,7 @@ import { cookies } from "next/headers"
 export async function GET(req) {
     const requestUrl = new URL(req.url)
     const code = requestUrl.searchParams.get("code")
-    const nextPath = requestUrl.searchParams.get("next") ?? "/"
+    const nextPath = requestUrl.searchParams.get("next") ?? "/home"
 
     const cookieStore = cookies()
     const supabase = createServerClient(

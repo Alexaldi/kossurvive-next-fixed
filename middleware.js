@@ -43,6 +43,7 @@ export async function middleware(req) {
     }
 
     const publicPaths = ["/", "/login", "/register"]
+    const authOnlyPaths = ["/login", "/register"]
     const isAuthCallback = req.nextUrl.pathname === "/auth/callback"
 
     // 1️⃣ kalau BELUM login → tendang ke /login (kecuali di path /login & /register)
@@ -53,11 +54,11 @@ export async function middleware(req) {
         return NextResponse.redirect(redirectUrl)
     }
 
-    // 2️⃣ kalau SUDAH login → jangan bisa buka /login atau /register
-    if (user && publicPaths.includes(req.nextUrl.pathname)) {
+    // 2️⃣ kalau SUDAH login → jangan bisa buka halaman auth atau landing
+    if (user && (authOnlyPaths.includes(req.nextUrl.pathname) || req.nextUrl.pathname === "/")) {
         if (isDev) console.log("⚠️ Redirecting: Already logged in")
         const redirectUrl = req.nextUrl.clone()
-        redirectUrl.pathname = "/" // atau "/app-user" sesuai kebutuhan lo
+        redirectUrl.pathname = "/home"
         return NextResponse.redirect(redirectUrl)
     }
 
@@ -69,7 +70,7 @@ export async function middleware(req) {
         if (req.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
             if (isDev) console.log("⛔ Access denied: not admin")
             const redirectUrl = req.nextUrl.clone()
-            redirectUrl.pathname = "/"
+            redirectUrl.pathname = "/home"
             return NextResponse.redirect(redirectUrl)
         }
     }
