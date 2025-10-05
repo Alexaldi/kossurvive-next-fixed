@@ -1,39 +1,53 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Router from "next/router"
 import { AnimatePresence, motion } from "framer-motion"
 
+const MIN_DISPLAY_MS = 520
+
 export default function RouteLoader() {
     const [isVisible, setIsVisible] = useState(false)
+    const startTimeRef = useRef(Date.now())
 
     useEffect(() => {
-        let startTimer
-        let finishTimer
+        let initialTimer
+        let hideTimer
+
+        const ensureMinimumDisplay = () => {
+            const elapsed = Date.now() - startTimeRef.current
+            const remaining = Math.max(MIN_DISPLAY_MS - elapsed, 0)
+
+            clearTimeout(hideTimer)
+            hideTimer = setTimeout(() => {
+                setIsVisible(false)
+            }, remaining)
+        }
 
         const handleStart = () => {
-            clearTimeout(startTimer)
-            clearTimeout(finishTimer)
-            startTimer = setTimeout(() => {
-                setIsVisible(true)
-            }, 120)
+            clearTimeout(initialTimer)
+            clearTimeout(hideTimer)
+            startTimeRef.current = Date.now()
+            setIsVisible(true)
         }
 
         const handleStop = () => {
-            clearTimeout(startTimer)
-            clearTimeout(finishTimer)
-            finishTimer = setTimeout(() => {
-                setIsVisible(false)
-            }, 220)
+            ensureMinimumDisplay()
         }
+
+        startTimeRef.current = Date.now()
+        setIsVisible(true)
+        initialTimer = setTimeout(() => {
+            setIsVisible(false)
+        }, MIN_DISPLAY_MS)
 
         Router.events.on("routeChangeStart", handleStart)
         Router.events.on("routeChangeComplete", handleStop)
         Router.events.on("routeChangeError", handleStop)
 
         return () => {
-            clearTimeout(startTimer)
-            clearTimeout(finishTimer)
+            clearTimeout(initialTimer)
+            clearTimeout(hideTimer)
             Router.events.off("routeChangeStart", handleStart)
             Router.events.off("routeChangeComplete", handleStop)
             Router.events.off("routeChangeError", handleStop)

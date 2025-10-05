@@ -3,9 +3,19 @@ import { NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
 const isDev = process.env.NODE_ENV === "development"
+const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 export async function middleware(req) {
     const res = NextResponse.next()
+
+    if (!hasSupabaseConfig) {
+        if (isDev) {
+            console.warn("⚠️ Supabase env belum di-set, middleware melewati proteksi auth.")
+        }
+        return res
+    }
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,

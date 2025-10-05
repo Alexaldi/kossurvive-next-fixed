@@ -16,7 +16,13 @@ const navigationLinks = [
 ]
 
 export default function Navbar() {
-    const supabase = useMemo(() => createClient(), [])
+    const isSupabaseConfigured = Boolean(
+        process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+    const supabase = useMemo(
+        () => (isSupabaseConfigured ? createClient() : null),
+        [isSupabaseConfigured]
+    )
     const router = useRouter()
     const pathname = usePathname()
     const [userState, setUserState] = useState({
@@ -65,6 +71,16 @@ export default function Navbar() {
                 email: user?.email ?? null,
                 avatarUrl: avatarUrl || null,
             })
+        }
+
+        if (!supabase) {
+            setUserState({
+                loading: false,
+                displayName: null,
+                email: null,
+                avatarUrl: null,
+            })
+            return
         }
 
         const fetchUser = async () => {
@@ -135,6 +151,15 @@ export default function Navbar() {
     }
 
     const handleLogout = async () => {
+        if (!supabase) {
+            setFeedback({
+                type: "error",
+                message: "Supabase belum dikonfigurasi, logout sementara dinonaktifkan.",
+            })
+            setIsConfirmOpen(false)
+            return
+        }
+
         setIsLoggingOut(true)
         const { error } = await supabase.auth.signOut()
         setIsLoggingOut(false)
