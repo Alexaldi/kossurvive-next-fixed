@@ -1,23 +1,27 @@
 "use client";
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/data";
+import { useAsyncLoader } from "@/components/RouteLoader";
 
 export default function Onboarding() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [prefs, setPrefs] = useState([]);
   const [open, setOpen] = useState(false);
+  const { track } = useAsyncLoader();
 
   const toggle = (c) => {
     setPrefs((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
   };
 
   async function save() {
-    const res = await fetch("/api/user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, prefs }),
-    });
+    const res = await track(() =>
+      fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, prefs }),
+      })
+    );
     if (res.ok) window.location.href = "/feed";
   }
 

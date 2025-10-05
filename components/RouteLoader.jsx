@@ -47,6 +47,7 @@ export default function RouteLoaderProvider({ children }) {
     const [isVisible, setIsVisible] = useState(false)
     const startTimeRef = useRef(0)
     const hideTimerRef = useRef(null)
+    const pendingRef = useRef(0)
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
@@ -67,6 +68,7 @@ export default function RouteLoaderProvider({ children }) {
     }, [])
 
     const hideLoader = useCallback(() => {
+        if (pendingRef.current > 0) return
         ensureMinimumDisplay()
     }, [ensureMinimumDisplay])
 
@@ -77,19 +79,20 @@ export default function RouteLoaderProvider({ children }) {
     }, [pathname, searchParams])
 
     useEffect(() => {
-        ensureMinimumDisplay()
-    }, [navigationKey, ensureMinimumDisplay])
+        hideLoader()
+    }, [navigationKey, hideLoader])
 
     useEffect(() => {
         // show loader briefly on very first mount to keep transition consistent
         showLoader()
-        ensureMinimumDisplay()
-    }, [showLoader, ensureMinimumDisplay])
+        hideLoader()
+    }, [showLoader, hideLoader])
 
     const value = useMemo(
         () => ({
             showLoader,
             hideLoader,
+            pendingRef,
         }),
         [showLoader, hideLoader]
     )
@@ -99,5 +102,47 @@ export default function RouteLoaderProvider({ children }) {
             <RouteLoaderOverlay isVisible={isVisible} />
             {children}
         </RouteLoaderContext.Provider>
+    )
+}
+
+export function useAsyncLoader() {
+    const { showLoader, hideLoader, pendingRef } = useRouteLoader()
+
+    const track = useCallback(
+        (promiseOrFactory) => {
+            const factory =
+                typeof promiseOrFactory === "function"
+                    ? promiseOrFactory
+                    : () => promiseOrFactory
+
+            showLoader()
+            pendingRef.current += 1
+
+            let promise
+            try {
+                promise = factory()
+            } catch (error) {
+                pendingRef.current = Math.max(0, pendingRef.current - 1)
+                if (pendingRef.current === 0) {
+                    hideLoader()
+                }
+                return Promise.reject(error)
+            }
+
+            return Promise.resolve(promise).finally(() => {
+                pendingRef.current = Math.max(0, pendingRef.current - 1)
+                if (pendingRef.current === 0) {
+                    hideLoader()
+                }
+            })
+        },
+        [showLoader, hideLoader, pendingRef]
+    )
+
+    return useMemo(
+        () => ({
+            track,
+        }),
+        [track]
     )
 }
