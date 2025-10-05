@@ -11,6 +11,7 @@ datasource db {
 model UserProfile {
   id          String   @id @default(uuid())
   supabaseId  String   @unique
+  email       String?
   role        String   @default("user")
   displayName String?
   createdAt   DateTime @default(now())

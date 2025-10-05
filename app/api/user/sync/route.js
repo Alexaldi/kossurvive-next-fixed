@@ -36,8 +36,8 @@ export async function POST() {
     // upsert ke Prisma
     await prisma.userProfile.upsert({
         where: { supabaseId: user.id },
-        update: { email: user.email, role: "user" },
-        create: { supabaseId: user.id, email: user.email, role: "user" },
+        update: { email: user.email ?? null, role: "user" },
+        create: { supabaseId: user.id, email: user.email ?? null, role: "user" },
     })
 
     console.log("✅ Synced user:", user.email)
