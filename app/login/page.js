@@ -12,13 +12,13 @@ export default function LoginPage() {
     const [error, setError] = useState("")
     const searchParams = useSearchParams()
     const nextParam = useMemo(() => {
-        const value = searchParams?.get("next") ?? "/"
-        return value.startsWith("/") ? value : "/"
+        const value = searchParams?.get("next") ?? "/home"
+        return value.startsWith("/") ? value : "/home"
     }, [searchParams])
 
     const buildCallbackUrl = () => {
         const basePath = "/auth/callback"
-        if (!nextParam || nextParam === "/") return basePath
+        if (!nextParam || nextParam === "/home") return basePath
         const url = new URL(basePath, window.location.origin)
         url.searchParams.set("next", nextParam)
         return `${url.pathname}${url.search}`
