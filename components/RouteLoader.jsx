@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import Router from "next/router"
+import { usePathname, useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 
 const MIN_DISPLAY_MS = 520
@@ -47,6 +47,8 @@ export default function RouteLoaderProvider({ children }) {
     const [isVisible, setIsVisible] = useState(false)
     const startTimeRef = useRef(0)
     const hideTimerRef = useRef(null)
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
 
     const ensureMinimumDisplay = useCallback(() => {
         const elapsed = Date.now() - startTimeRef.current
@@ -68,25 +70,15 @@ export default function RouteLoaderProvider({ children }) {
         ensureMinimumDisplay()
     }, [ensureMinimumDisplay])
 
+    const navigationKey = useMemo(() => {
+        const paramsString = searchParams?.toString() ?? ""
+        if (!pathname) return paramsString
+        return paramsString ? `${pathname}?${paramsString}` : pathname
+    }, [pathname, searchParams])
+
     useEffect(() => {
-        const handleStart = () => {
-            showLoader()
-        }
-
-        const handleStop = () => {
-            hideLoader()
-        }
-
-        Router.events.on("routeChangeStart", handleStart)
-        Router.events.on("routeChangeComplete", handleStop)
-        Router.events.on("routeChangeError", handleStop)
-
-        return () => {
-            Router.events.off("routeChangeStart", handleStart)
-            Router.events.off("routeChangeComplete", handleStop)
-            Router.events.off("routeChangeError", handleStop)
-        }
-    }, [showLoader, hideLoader])
+        ensureMinimumDisplay()
+    }, [navigationKey, ensureMinimumDisplay])
 
     useEffect(() => {
         // show loader briefly on very first mount to keep transition consistent
