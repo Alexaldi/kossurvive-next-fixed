@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { LogOut, Menu, X } from "lucide-react"
+import { AlertCircle, LogOut, Menu, ShieldCheck, X } from "lucide-react"
 
 const navigationLinks = [
     { href: "/feed", label: "Makanan Sehat" },
@@ -27,6 +27,9 @@ export default function Navbar() {
     })
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const [feedback, setFeedback] = useState(null)
     const profileSectionRef = useRef(null)
 
     const displayInitial = useMemo(() => {
@@ -103,6 +106,16 @@ export default function Navbar() {
     }, [])
 
     useEffect(() => {
+        if (!feedback) return
+
+        const timer = setTimeout(() => {
+            setFeedback(null)
+        }, 3500)
+
+        return () => clearTimeout(timer)
+    }, [feedback])
+
+    useEffect(() => {
         setIsDropdownOpen(false)
         setIsMobileMenuOpen(false)
     }, [pathname])
@@ -115,24 +128,43 @@ export default function Navbar() {
         setIsMobileMenuOpen((previous) => !previous)
     }
 
-    const handleLogout = async () => {
-        const confirmLogout = window.confirm("Yakin mau logout?")
-        if (!confirmLogout) return
+    const requestLogout = () => {
+        setIsConfirmOpen(true)
+        setIsDropdownOpen(false)
+        setIsMobileMenuOpen(false)
+    }
 
+    const handleLogout = async () => {
+        setIsLoggingOut(true)
         const { error } = await supabase.auth.signOut()
+        setIsLoggingOut(false)
+
         if (error) {
             console.error("Logout error:", error.message)
-            alert("Gagal logout, coba lagi")
-        } else {
-            router.push("/login")
-            router.refresh()
-            setIsDropdownOpen(false)
-            setIsMobileMenuOpen(false)
+            setFeedback({
+                type: "error",
+                message: "Gagal logout. Coba lagi ya!",
+            })
+            return
         }
+
+        setIsConfirmOpen(false)
+        setIsMobileMenuOpen(false)
+        router.push("/login")
+        router.refresh()
+    }
+
+    if (userState.loading) {
+        return null
+    }
+
+    if (!userState.displayName) {
+        return null
     }
 
     return (
-        <header className="navbar border-b border-slate-800/70 bg-transparent">
+        <>
+            <header className="navbar border-b border-slate-800/70 bg-transparent">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <nav className="flex h-20 items-center justify-between gap-6">
                     {/* Logo */}
@@ -171,41 +203,27 @@ export default function Navbar() {
                         ref={profileSectionRef}
                         className="relative hidden flex-1 items-center justify-end lg:flex"
                     >
-                        {userState.loading ? (
-                            <div
-                                className="h-10 w-10 animate-pulse rounded-full bg-slate-700/60"
-                                aria-hidden="true"
-                            />
-                        ) : userState.displayName ? (
-                            <button
-                                onClick={toggleDropdown}
-                                className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
-                                aria-haspopup="menu"
-                                aria-expanded={isDropdownOpen}
-                            >
-                                {userState.avatarUrl ? (
-                                    <Image
-                                        src={userState.avatarUrl}
-                                        alt={userState.displayName}
-                                        width={36}
-                                        height={36}
-                                        className="h-9 w-9 rounded-full object-cover"
-                                    />
-                                ) : displayInitial ? (
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
-                                        {displayInitial}
-                                    </span>
-                                ) : null}
-                                <span className="font-medium">{userState.displayName}</span>
-                            </button>
-                        ) : (
-                            <Link
-                                href="/login"
-                                className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400"
-                            >
-                                Masuk
-                            </Link>
-                        )}
+                        <button
+                            onClick={toggleDropdown}
+                            className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
+                            aria-haspopup="menu"
+                            aria-expanded={isDropdownOpen}
+                        >
+                            {userState.avatarUrl ? (
+                                <Image
+                                    src={userState.avatarUrl}
+                                    alt={userState.displayName}
+                                    width={36}
+                                    height={36}
+                                    className="h-9 w-9 rounded-full object-cover"
+                                />
+                            ) : displayInitial ? (
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
+                                    {displayInitial}
+                                </span>
+                            ) : null}
+                            <span className="font-medium">{userState.displayName}</span>
+                        </button>
 
                         {isDropdownOpen && (
                             <div
@@ -214,7 +232,7 @@ export default function Navbar() {
                                 className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
                             >
                                 <button
-                                    onClick={handleLogout}
+                                    onClick={requestLogout}
                                     className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
                                     role="menuitem"
                                 >
@@ -257,52 +275,107 @@ export default function Navbar() {
                             </nav>
 
                             <div className="rounded-2xl bg-slate-900/60 p-4">
-                                {userState.loading ? (
-                                    <div className="h-12 w-12 animate-pulse rounded-full bg-slate-700/60" aria-hidden="true" />
-                                ) : userState.displayName ? (
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            {userState.avatarUrl ? (
-                                                <Image
-                                                    src={userState.avatarUrl}
-                                                    alt={userState.displayName}
-                                                    width={40}
-                                                    height={40}
-                                                    className="h-10 w-10 rounded-full object-cover"
-                                                />
-                                            ) : displayInitial ? (
-                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
-                                                    {displayInitial}
-                                                </span>
-                                            ) : null}
-                                            <div>
-                                                <p className="text-sm font-semibold text-white">{userState.displayName}</p>
-                                                {userState.email && (
-                                                    <p className="text-xs text-slate-400">{userState.email}</p>
-                                                )}
-                                            </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        {userState.avatarUrl ? (
+                                            <Image
+                                                src={userState.avatarUrl}
+                                                alt={userState.displayName}
+                                                width={40}
+                                                height={40}
+                                                className="h-10 w-10 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
+                                                {displayInitial}
+                                            </span>
+                                        )}
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">{userState.displayName}</p>
+                                            {userState.email && (
+                                                <p className="text-xs text-slate-400">{userState.email}</p>
+                                            )}
                                         </div>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
-                                        >
-                                            <LogOut className="h-4 w-4" aria-hidden="true" />
-                                            Keluar
-                                        </button>
                                     </div>
-                                ) : (
-                                    <Link
-                                        href="/login"
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400"
+                                    <button
+                                        onClick={requestLogout}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
                                     >
-                                        Masuk
-                                    </Link>
-                                )}
+                                        <LogOut className="h-4 w-4" aria-hidden="true" />
+                                        Keluar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
-        </header>
+            </header>
+
+            {isConfirmOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur"
+                    onClick={() => {
+                        if (!isLoggingOut) {
+                            setIsConfirmOpen(false)
+                        }
+                    }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        className="w-full max-w-sm rounded-3xl border border-slate-800/70 bg-slate-950/95 p-6 text-slate-100 shadow-2xl shadow-emerald-500/10"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-600/10 text-red-400">
+                                <LogOut className="h-6 w-6" aria-hidden="true" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold">Keluar dari KoSurvive?</h3>
+                                <p className="text-sm text-slate-400">
+                                    Sesi kamu akan ditutup. Kamu bisa login lagi kapan pun.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                            <button
+                                onClick={() => setIsConfirmOpen(false)}
+                                className="btn btn-outline"
+                                type="button"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="btn bg-red-600 text-white shadow-lg shadow-red-600/30 hover:bg-red-500"
+                                type="button"
+                                disabled={isLoggingOut}
+                            >
+                                {isLoggingOut ? "Memproses..." : "Ya, logout"}
+                            </button>
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+                            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                            <span>Keamanan data kamu tetap terjaga.</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {feedback && (
+                <div className="fixed bottom-6 right-6 z-50 max-w-xs animate-toast-in rounded-2xl border border-red-500/40 bg-slate-950/95 p-4 text-sm text-red-100 shadow-xl shadow-red-900/40">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <div>
+                            <p className="font-semibold">Ups!</p>
+                            <p className="text-slate-200">{feedback.message}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     )
 }
