@@ -42,7 +42,7 @@ export async function middleware(req) {
         console.log("🔍 Error:", error)
     }
 
-    const publicPaths = ["/login", "/register"]
+    const publicPaths = ["/", "/login", "/register"]
     const isAuthCallback = req.nextUrl.pathname === "/auth/callback"
 
     // 1️⃣ kalau BELUM login → tendang ke /login (kecuali di path /login & /register)
