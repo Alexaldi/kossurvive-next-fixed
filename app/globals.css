@@ -2,45 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0b0f14;
-  --card: #111827;
-  --muted: #9ca3af;
-}
 html,
 body {
   height: 100%;
 }
-body {
-  background: var(--bg);
-  color: #f9fafb;
-}
+
 .container {
-  @apply max-w-2xl mx-auto px-4;
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-10;
 }
+
 .card {
-  @apply bg-gray-800/80 rounded-2xl shadow-xl border border-gray-700;
+  @apply rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-lg shadow-slate-950/40 backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-emerald-500/20;
 }
+
 .btn {
-  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition hover:opacity-90 disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60;
 }
+
 .btn-primary {
-  @apply bg-emerald-600;
+  @apply bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-400;
 }
+
 .btn-outline {
-  @apply border border-gray-600;
+  @apply border border-slate-700 bg-transparent text-slate-200 hover:border-emerald-400 hover:text-white;
 }
+
 .badge {
-  @apply text-xs px-2 py-1 rounded-full bg-gray-700;
+  @apply rounded-full bg-slate-800/80 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-300;
 }
+
 .input {
-  @apply w-full rounded-xl bg-gray-800 border border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-600;
+  @apply w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-100 shadow-inner shadow-slate-950/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40;
 }
+
 .tab {
-  @apply px-3 py-2 rounded-xl hover:bg-gray-700/50 transition;
+  @apply rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800/70 hover:text-white;
 }
+
 .navbar {
-  @apply sticky top-0 z-40 backdrop-blur bg-black/30;
+  @apply sticky top-0 z-40 backdrop-blur;
 }
 
 /* 🔽 Tambahin animasi fade-in di bawah sini */
