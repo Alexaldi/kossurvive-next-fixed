@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
 export default function RegisterPage() {
@@ -11,6 +12,20 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [message, setMessage] = useState("")
+    const searchParams = useSearchParams()
+    const nextParam = useMemo(() => {
+        const value = searchParams?.get("next") ?? "/"
+        return value.startsWith("/") ? value : "/"
+    }, [searchParams])
+
+    const buildCallbackUrl = () => {
+        const basePath = "/auth/callback"
+        const url = new URL(basePath, window.location.origin)
+        if (nextParam && nextParam !== "/") {
+            url.searchParams.set("next", nextParam)
+        }
+        return `${url.pathname}${url.search}`
+    }
 
     const handleRegister = async (e) => {
         e.preventDefault()
@@ -21,19 +36,38 @@ export default function RegisterPage() {
         setLoading(true)
         setError("")
         setMessage("")
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: { data: { role: "user" } },
+            options: {
+                data: { role: "user" },
+                emailRedirectTo: `${window.location.origin}${buildCallbackUrl()}`,
+            },
         })
-        if (error) setError(error.message)
-        else setMessage("✅ Akun berhasil dibuat, cek email untuk verifikasi!")
+        if (error) {
+            setError(error.message)
+            setLoading(false)
+            return
+        }
+
+        const hasSession = Boolean(data?.session)
+        if (hasSession) {
+            window.location.href = buildCallbackUrl()
+            return
+        }
+
+        setMessage("✅ Akun berhasil dibuat, cek email untuk verifikasi!")
         setLoading(false)
     }
 
     const handleGoogle = async () => {
         setLoading(true)
-        const { error } = await supabase.auth.signInWithOAuth({ provider: "google" })
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: `${window.location.origin}${buildCallbackUrl()}`,
+            },
+        })
         if (error) setError(error.message)
         setLoading(false)
     }

@@ -33,9 +33,10 @@ export async function middleware(req) {
     }
 
     const publicPaths = ["/login", "/register"]
+    const isAuthCallback = req.nextUrl.pathname === "/auth/callback"
 
     // 1️⃣ kalau BELUM login → tendang ke /login (kecuali di path /login & /register)
-    if (!user && !publicPaths.includes(req.nextUrl.pathname)) {
+    if (!user && !publicPaths.includes(req.nextUrl.pathname) && !isAuthCallback) {
         if (isDev) console.log("⚠️ Redirecting: Not logged in")
         const redirectUrl = req.nextUrl.clone()
         redirectUrl.pathname = "/login"

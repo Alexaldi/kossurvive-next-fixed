@@ -10,7 +10,10 @@ export async function POST() {
         {
             cookies: {
                 getAll: () => cookies().getAll(),
-                setAll: (arr) => arr.forEach(({ name, value }) => cookies().set(name, value)),
+                setAll: (arr) =>
+                    arr.forEach(({ name, value, options }) =>
+                        cookies().set(name, value, options)
+                    ),
             },
         }
     )

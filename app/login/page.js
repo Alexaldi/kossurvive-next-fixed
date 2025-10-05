@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
@@ -9,6 +10,19 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+    const searchParams = useSearchParams()
+    const nextParam = useMemo(() => {
+        const value = searchParams?.get("next") ?? "/"
+        return value.startsWith("/") ? value : "/"
+    }, [searchParams])
+
+    const buildCallbackUrl = () => {
+        const basePath = "/auth/callback"
+        if (!nextParam || nextParam === "/") return basePath
+        const url = new URL(basePath, window.location.origin)
+        url.searchParams.set("next", nextParam)
+        return `${url.pathname}${url.search}`
+    }
 
     const handleLogin = async (e) => {
         e.preventDefault()
@@ -21,11 +35,8 @@ export default function LoginPage() {
             return
         }
 
-        // 🔥 sinkronisasi user profile & metadata role
-        await fetch("/api/user/sync", { method: "POST" })
-
-        // redirect manual (biar gak stuck di login)
-        window.location.href = "/"
+        // arahkan ke callback supaya flow sinkronisasi konsisten dengan OAuth
+        window.location.href = buildCallbackUrl()
     }
 
     const handleGoogle = async () => {
@@ -33,7 +44,7 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${window.location.origin}${buildCallbackUrl()}`,
             },
         })
         if (error) console.error(error)
