@@ -21,11 +21,8 @@ export default function LoginPage() {
             return
         }
 
-        // 🔥 sinkronisasi user profile & metadata role
-        await fetch("/api/user/sync", { method: "POST" })
-
-        // redirect manual (biar gak stuck di login)
-        window.location.href = "/"
+        // arahkan ke callback supaya flow sinkronisasi konsisten dengan OAuth
+        window.location.href = "/auth/callback"
     }
 
     const handleGoogle = async () => {
