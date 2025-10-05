@@ -9,6 +9,7 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [displayName, setDisplayName] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [message, setMessage] = useState("")
@@ -29,6 +30,13 @@ export default function RegisterPage() {
 
     const handleRegister = async (e) => {
         e.preventDefault()
+        const trimmedDisplayName = displayName.trim()
+
+        if (!trimmedDisplayName) {
+            setError("Nama tampilan wajib diisi")
+            return
+        }
+
         if (password !== confirmPassword) {
             setError("Kata sandi tidak cocok")
             return
@@ -40,7 +48,11 @@ export default function RegisterPage() {
             email,
             password,
             options: {
-                data: { role: "user" },
+                data: {
+                    role: "user",
+                    full_name: trimmedDisplayName,
+                    display_name: trimmedDisplayName,
+                },
                 emailRedirectTo: `${window.location.origin}${buildCallbackUrl()}`,
             },
         })
@@ -84,6 +96,17 @@ export default function RegisterPage() {
 
                 {/* Form */}
                 <form onSubmit={handleRegister} className="space-y-4">
+                    <div>
+                        <label className="text-sm text-gray-300">Nama Tampilan</label>
+                        <input
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            required
+                            placeholder="Nama yang akan ditampilkan"
+                            className="w-full mt-1 px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
                     <div>
                         <label className="text-sm text-gray-300">Email</label>
                         <input
