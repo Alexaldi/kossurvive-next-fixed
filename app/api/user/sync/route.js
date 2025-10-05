@@ -20,21 +20,26 @@ export async function POST() {
 
     const {
         data: { user },
+        error,
     } = await supabase.auth.getUser()
 
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (error || !user) {
+        console.error("❌ Supabase getUser error:", error)
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-    // update role di metadata supabase
+    // kalau user belum ada role di metadata → isi "user"
     if (!user.user_metadata?.role) {
         await supabase.auth.updateUser({ data: { role: "user" } })
     }
 
-    // sync ke prisma
+    // upsert ke Prisma
     await prisma.userProfile.upsert({
         where: { supabaseId: user.id },
         update: { email: user.email, role: "user" },
         create: { supabaseId: user.id, email: user.email, role: "user" },
     })
 
-    return NextResponse.json({ message: "Synced", user })
+    console.log("✅ Synced user:", user.email)
+    return NextResponse.json({ message: "OK" })
 }
