@@ -5,19 +5,21 @@ import { BookmarkPlus, ChefHat, Flame, Heart, Leaf, Sparkles, Timer, UtensilsCro
 import PageHero from "@/components/ui/PageHero";
 import { rankRecipes } from "@/lib/reco";
 import { RECIPES } from "@/lib/data";
+import { useAsyncLoader } from "@/components/RouteLoader";
 
 function useUser() {
+  const { track } = useAsyncLoader();
   const [user, setUser] = useState(null);
   useEffect(() => {
-    fetch("/api/user")
-      .then((r) => r.json())
+    track(() => fetch("/api/user").then((r) => r.json()))
       .then(setUser)
       .catch(() => setUser(null));
-  }, []);
+  }, [track]);
   return [user, setUser];
 }
 
 export default function Feed() {
+  const { track } = useAsyncLoader();
   const [user] = useUser();
   const [items, setItems] = useState(RECIPES);
   const [score, setScore] = useState({});
@@ -43,12 +45,12 @@ export default function Feed() {
 
   useEffect(() => {
     async function init() {
-      const sres = await fetch("/api/recommend").then((r) => r.json());
+      const sres = await track(() => fetch("/api/recommend").then((r) => r.json()));
       setScore(sres.score || {});
       setItems(rankRecipes(sres.score));
     }
     init();
-  }, []);
+  }, [track]);
 
   useEffect(() => {
     observer.current = new IntersectionObserver(
@@ -78,14 +80,16 @@ export default function Feed() {
   }, [items]);
 
   async function act(id, action) {
-    await fetch("/api/recommend/" + action, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipeId: id }),
+    await track(async () => {
+      await fetch("/api/recommend/" + action, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipeId: id }),
+      });
+      const sres = await fetch("/api/recommend").then((r) => r.json());
+      setScore(sres.score || {});
+      setItems(rankRecipes(sres.score));
     });
-    const sres = await fetch("/api/recommend").then((r) => r.json());
-    setScore(sres.score || {});
-    setItems(rankRecipes(sres.score));
   }
 
   function scrollToRecipes() {
