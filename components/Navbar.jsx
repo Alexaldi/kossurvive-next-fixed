@@ -8,6 +8,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { AlertCircle, LogOut, Menu, ShieldCheck, X } from "lucide-react"
 
+const AUTH_EXCLUDED_PATHS = ["/login", "/register"]
+
 const navigationLinks = [
     { href: "/feed", label: "Makanan Sehat" },
     { href: "/olahraga", label: "Olahraga" },
@@ -27,6 +29,13 @@ export default function Navbar() {
     )
     const router = useRouter()
     const pathname = usePathname()
+    const shouldHideNavbar = useMemo(() => {
+        if (!pathname) return false
+
+        if (AUTH_EXCLUDED_PATHS.includes(pathname)) return true
+
+        return pathname === "/auth" || pathname.startsWith("/auth/")
+    }, [pathname])
     const [userState, setUserState] = useState({
         loading: true,
         displayName: null,
@@ -181,7 +190,7 @@ export default function Navbar() {
         router.refresh()
     }
 
-    if (hiddenRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+    if (shouldHideNavbar) {
         return null
     }
 
