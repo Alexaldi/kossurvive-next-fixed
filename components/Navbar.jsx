@@ -17,7 +17,7 @@ export default function Navbar() {
         avatarUrl: null,
     })
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-    const profileButtonRef = useRef(null)
+    const profileSectionRef = useRef(null)
 
     const displayInitial = useMemo(() => {
         const source = userState.displayName ?? userState.email ?? ""
@@ -79,8 +79,8 @@ export default function Navbar() {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (
-                profileButtonRef.current &&
-                !profileButtonRef.current.contains(event.target)
+                profileSectionRef.current &&
+                !profileSectionRef.current.contains(event.target)
             ) {
                 setIsDropdownOpen(false)
             }
@@ -153,7 +153,10 @@ export default function Navbar() {
                 </div>
 
                 {/* User info & Logout */}
-                <div className="relative flex flex-shrink-0 items-center">
+                <div
+                    ref={profileSectionRef}
+                    className="relative flex flex-shrink-0 items-center"
+                >
                     {userState.loading ? (
                         <div
                             className="h-10 w-10 animate-pulse rounded-full bg-gray-700/60"
@@ -161,7 +164,6 @@ export default function Navbar() {
                         />
                     ) : userState.displayName ? (
                         <button
-                            ref={profileButtonRef}
                             onClick={toggleDropdown}
                             className="flex items-center gap-3 rounded-full bg-gray-800/80 px-3 py-2 text-left text-sm text-gray-100 transition hover:bg-gray-700/70"
                             aria-haspopup="menu"
