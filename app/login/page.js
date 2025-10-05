@@ -1,16 +1,19 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { useRouteLoader } from "@/components/RouteLoader"
 
 export default function LoginPage() {
+    const router = useRouter()
     const supabase = createClient()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const searchParams = useSearchParams()
+    const { showLoader, hideLoader } = useRouteLoader()
     const nextParam = useMemo(() => {
         const value = searchParams?.get("next") ?? "/home"
         return value.startsWith("/") ? value : "/home"
@@ -27,28 +30,48 @@ export default function LoginPage() {
     const handleLogin = async (e) => {
         e.preventDefault()
         setLoading(true)
+        showLoader()
         setError("")
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) {
-            setError(error.message)
-            setLoading(false)
-            return
-        }
 
-        // arahkan ke callback supaya flow sinkronisasi konsisten dengan OAuth
-        window.location.href = buildCallbackUrl()
+        try {
+            const { error } = await supabase.auth.signInWithPassword({ email, password })
+            if (error) {
+                setError(error.message)
+                hideLoader()
+                setLoading(false)
+                return
+            }
+
+            // arahkan ke callback supaya flow sinkronisasi konsisten dengan OAuth
+            router.replace(buildCallbackUrl())
+        } catch (err) {
+            console.error(err)
+            setError("Terjadi kesalahan tak terduga. Coba lagi.")
+            hideLoader()
+            setLoading(false)
+        }
     }
 
     const handleGoogle = async () => {
         setLoading(true)
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: {
-                redirectTo: `${window.location.origin}${buildCallbackUrl()}`,
-            },
-        })
-        if (error) console.error(error)
-        setLoading(false)
+        showLoader()
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}${buildCallbackUrl()}`,
+                },
+            })
+            if (error) {
+                console.error(error)
+                hideLoader()
+                setLoading(false)
+            }
+        } catch (err) {
+            console.error(err)
+            hideLoader()
+            setLoading(false)
+        }
     }
 
 
@@ -90,9 +113,16 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white font-semibold shadow hover:opacity-90 transition disabled:opacity-50"
+                        className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white font-semibold shadow hover:opacity-90 transition disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {loading ? "Loading..." : "Masuk"}
+                        {loading ? (
+                            <span className="flex items-center justify-center gap-2 text-sm font-semibold">
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                                Memproses
+                            </span>
+                        ) : (
+                            "Masuk"
+                        )}
                     </button>
                 </form>
 
@@ -107,14 +137,24 @@ export default function LoginPage() {
                 <button
                     onClick={handleGoogle}
                     disabled={loading}
-                    className="w-full py-3 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg text-white font-semibold hover:bg-white/10 transition disabled:opacity-50"
+                    type="button"
+                    className="w-full py-3 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg text-white font-semibold hover:bg-white/10 transition disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <img
-                        src="https://www.svgrepo.com/show/355037/google.svg"
-                        alt="Google"
-                        className="h-5 w-5"
-                    />
-                    Lanjutkan dengan Google
+                    {loading ? (
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                            Menyiapkan
+                        </span>
+                    ) : (
+                        <>
+                            <img
+                                src="https://www.svgrepo.com/show/355037/google.svg"
+                                alt="Google"
+                                className="h-5 w-5"
+                            />
+                            Lanjutkan dengan Google
+                        </>
+                    )}
                 </button>
 
                 {/* Link ke register */}
