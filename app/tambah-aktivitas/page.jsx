@@ -1,18 +1,35 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAsyncLoader } from "@/components/RouteLoader";
 
 export default function TambahAktivitas() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedWorkout, setSelectedWorkout] = useState("");
   const [workouts, setWorkouts] = useState([]);
   const router = useRouter();
+  const { track } = useAsyncLoader();
 
   useEffect(() => {
-    fetch("/api/workouts")
-      .then((r) => r.json())
-      .then((data) => setWorkouts(data));
-  }, []);
+    let isCancelled = false;
+
+    async function loadWorkouts() {
+      try {
+        const data = await track(() => fetch("/api/workouts").then((r) => r.json()));
+        if (!isCancelled) {
+          setWorkouts(data);
+        }
+      } catch (error) {
+        console.error("Failed to load workouts", error);
+      }
+    }
+
+    loadWorkouts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [track]);
 
   useEffect(() => {
     const d = localStorage.getItem("selectedDate");
