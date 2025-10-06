@@ -160,7 +160,7 @@ export default function Feed() {
         </div>
       </PageHero>
 
-      <section id="resep-harian" className="space-y-6">
+      <section id="resep-harian" className="space-y-6 scroll-mt-28">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold text-white">Pilihan resep untuk hari ini</h2>
