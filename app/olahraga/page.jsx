@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brain, Dumbbell, HeartPulse, MoonStar, Smile, Sparkles, SunMedium, Timer } from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
@@ -106,6 +107,12 @@ export default function Olahraga() {
             <button onClick={() => document.getElementById("workout-section")?.scrollIntoView({ behavior: "smooth" })} className="btn btn-primary">
               Lihat daftar workout
             </button>
+            <Link
+              href="/kalender"
+              className="btn btn-outline border-emerald-400/40 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
+            >
+              Atur jadwal workout
+            </Link>
             <button
               onClick={() => document.getElementById("mood-section")?.scrollIntoView({ behavior: "smooth" })}
               className="btn btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-200 hover:bg-slate-800"
