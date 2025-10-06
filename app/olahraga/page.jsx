@@ -148,7 +148,7 @@ export default function Olahraga() {
       </PageHero>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <section id="workout-section" className="card space-y-6">
+        <section id="workout-section" className="card space-y-6 scroll-mt-28">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-200">
@@ -190,7 +190,7 @@ export default function Olahraga() {
           </div>
         </section>
 
-        <section id="mood-section" className="card relative space-y-6">
+        <section id="mood-section" className="card relative space-y-6 scroll-mt-28">
           <div className="flex items-start gap-3">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-200">
               <Brain className="h-6 w-6" aria-hidden="true" />
