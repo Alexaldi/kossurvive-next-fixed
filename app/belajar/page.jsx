@@ -1,18 +1,24 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useAsyncLoader } from "@/components/RouteLoader";
 
 export default function Belajar() {
   const [items, setItems] = useState([]);
   const [q, setQ] = useState("");
   const [watched, setWatched] = useState({});
   const [toast, setToast] = useState(false); // ✅ state untuk notifikasi
+  const { track } = useAsyncLoader();
 
   // ✅ Ambil data dari API
   useEffect(() => {
-    fetch("/api/courses")
-      .then((r) => r.json())
-      .then(setItems);
-  }, []);
+    async function loadCourses() {
+      const data = await track(() =>
+        fetch("/api/courses").then((r) => r.json())
+      );
+      setItems(data);
+    }
+    loadCourses();
+  }, [track]);
 
   // ✅ Load progress dari localStorage saat pertama kali
   useEffect(() => {
