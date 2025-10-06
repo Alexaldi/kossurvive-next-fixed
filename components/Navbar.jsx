@@ -14,6 +14,7 @@ const navigationLinks = [
     { href: "/feed", label: "Makanan Sehat" },
     { href: "/olahraga", label: "Olahraga" },
     { href: "/belajar", label: "Belajar" },
+    { href: "/kalender", label: "Kalender" },
     { href: "/onboarding", label: "Pilih Makanan" },
 ]
 
