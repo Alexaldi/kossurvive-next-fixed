@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Brain, Dumbbell, HeartPulse, MoonStar, Smile, Sparkles, SunMedium, Timer } from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
+import { useAsyncLoader } from "@/components/RouteLoader";
 
 const MOOD_CHOICES = [
   {
@@ -62,12 +63,15 @@ export default function Olahraga() {
   const [message, setMessage] = useState("");
   const [toast, setToast] = useState("");
   const [recommendedWorkout, setRecommendedWorkout] = useState(null);
+  const { track } = useAsyncLoader();
 
   useEffect(() => {
-    fetch("/api/workouts")
-      .then((r) => r.json())
-      .then(setWorkouts);
-  }, []);
+    async function loadWorkouts() {
+      const data = await track(() => fetch("/api/workouts").then((r) => r.json()));
+      setWorkouts(data);
+    }
+    loadWorkouts();
+  }, [track]);
 
   async function submitMood() {
     if (!mood) {
@@ -76,11 +80,13 @@ export default function Olahraga() {
       return;
     }
 
-    await fetch("/api/mood", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mood }),
-    });
+    await track(() =>
+      fetch("/api/mood", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mood }),
+      })
+    );
 
     setMessage(MOOD_SOLUTIONS[mood] || "");
     setRecommendedWorkout(WORKOUT_SUGGESTIONS[mood] || null);
