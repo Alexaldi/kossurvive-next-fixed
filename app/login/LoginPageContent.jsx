@@ -5,9 +5,27 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useRouteLoader } from "@/components/RouteLoader"
 
-export default function LoginPage() {
+export function LoadingState() {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <div className="flex flex-col items-center gap-3 text-slate-300">
+                <span className="inline-flex h-10 w-10 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent" />
+                <p className="text-sm font-medium">Menyiapkan halaman masuk...</p>
+            </div>
+        </div>
+    )
+}
+
+export default function LoginPageContent() {
     const router = useRouter()
-    const supabase = createClient()
+    const { client: supabase, error: configError } = useMemo(() => {
+        try {
+            return { client: createClient(), error: null }
+        } catch (error) {
+            console.error("Supabase client init failed:", error)
+            return { client: null, error }
+        }
+    }, [])
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
@@ -18,6 +36,21 @@ export default function LoginPage() {
         const value = searchParams?.get("next") ?? "/home"
         return value.startsWith("/") ? value : "/home"
     }, [searchParams])
+
+    if (!supabase) {
+        const message = configError?.message ?? "Supabase belum dikonfigurasi."
+        return (
+            <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-rose-200">
+                <div className="max-w-md space-y-2 rounded-2xl border border-rose-400/30 bg-rose-950/40 p-6 backdrop-blur">
+                    <p className="text-base font-semibold text-rose-100">Konfigurasi auth belum lengkap</p>
+                    <p>{message}</p>
+                    <p className="text-xs text-rose-300/80">
+                        Tambahkan NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY ke environment sebelum mencoba login.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     const buildCallbackUrl = () => {
         const basePath = "/auth/callback"
@@ -42,7 +75,6 @@ export default function LoginPage() {
                 return
             }
 
-            // arahkan ke callback supaya flow sinkronisasi konsisten dengan OAuth
             router.replace(buildCallbackUrl())
         } catch (err) {
             console.error(err)
@@ -74,18 +106,14 @@ export default function LoginPage() {
         }
     }
 
-
     return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="w-full max-w-md bg-[rgba(30,30,46,0.7)] backdrop-blur-xl rounded-2xl shadow-xl p-8">
-
-                {/* Brand */}
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-bold text-white">Masuk</h1>
                     <p className="text-sm text-gray-400">Akses akun Anda</p>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="text-sm text-gray-300">Email</label>
@@ -126,14 +154,12 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Divider */}
                 <div className="flex items-center gap-2 my-6 text-gray-400 text-sm">
                     <div className="flex-grow h-px bg-white/10" />
                     <span>atau</span>
                     <div className="flex-grow h-px bg-white/10" />
                 </div>
 
-                {/* Google login */}
                 <button
                     onClick={handleGoogle}
                     disabled={loading}
@@ -157,7 +183,6 @@ export default function LoginPage() {
                     )}
                 </button>
 
-                {/* Link ke register */}
                 <p className="mt-6 text-center text-sm text-gray-400">
                     Belum punya akun?{" "}
                     <a href="/register" className="text-indigo-400 hover:underline">
@@ -168,3 +193,4 @@ export default function LoginPage() {
         </div>
     )
 }
+
