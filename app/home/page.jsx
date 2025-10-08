@@ -1,16 +1,14 @@
 import AuthenticatedHome from "@/components/home/AuthenticatedHome"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getSupabaseServerConfig } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
-  let supabase
+  const supabase = createClient()
 
-  try {
-    supabase = createClient()
-  } catch (error) {
-    console.error("Supabase client init failed:", error)
+  if (!supabase) {
+    console.warn(getSupabaseServerConfig().missingMessage)
     redirect("/")
   }
 

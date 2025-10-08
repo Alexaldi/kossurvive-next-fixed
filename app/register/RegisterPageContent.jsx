@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, getSupabaseClientConfig } from "@/lib/supabase/client"
 
 export function LoadingState() {
     return (
@@ -16,14 +16,8 @@ export function LoadingState() {
 }
 
 export default function RegisterPageContent() {
-    const { client: supabase, error: configError } = useMemo(() => {
-        try {
-            return { client: createClient(), error: null }
-        } catch (error) {
-            console.error("Supabase client init failed:", error)
-            return { client: null, error }
-        }
-    }, [])
+    const supabaseConfig = getSupabaseClientConfig()
+    const supabase = useMemo(() => createClient(), [])
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
@@ -38,7 +32,7 @@ export default function RegisterPageContent() {
     }, [searchParams])
 
     if (!supabase) {
-        const message = configError?.message ?? "Supabase belum dikonfigurasi."
+        const message = supabaseConfig.missingMessage
         return (
             <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-rose-200">
                 <div className="max-w-md space-y-2 rounded-2xl border border-rose-400/30 bg-rose-950/40 p-6 backdrop-blur">
