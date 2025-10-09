@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
+import { createMiddlewareClient } from "@supabase/ssr"
+
+import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
 import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
