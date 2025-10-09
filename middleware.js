@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { createMiddlewareClient } from "@supabase/ssr"
-
-import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
+import * as SupabaseSSR from "@supabase/ssr"
 
 import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
@@ -20,6 +18,15 @@ export async function middleware(req) {
         if (isDev) {
             console.warn("⚠️ Supabase env belum di-set, middleware melewati proteksi auth.")
         }
+        return res
+    }
+
+    const createServerClient = SupabaseSSR?.createServerClient
+
+    if (typeof createServerClient !== "function") {
+        console.error(
+            "Supabase createServerClient tidak tersedia. Pastikan paket @supabase/ssr ter-install dan up-to-date.",
+        )
         return res
     }
 
