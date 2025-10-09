@@ -3,8 +3,6 @@ import { createMiddlewareClient } from "@supabase/ssr"
 
 import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
-import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
-
 const isDev = process.env.NODE_ENV === "development"
 
 export async function middleware(req) {
