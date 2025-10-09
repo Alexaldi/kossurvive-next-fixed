@@ -3,10 +3,16 @@ import { createMiddlewareClient } from "@supabase/ssr"
 
 import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
+import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
+
 const isDev = process.env.NODE_ENV === "development"
 
 export async function middleware(req) {
-    const res = NextResponse.next()
+    const res = NextResponse.next({
+        request: {
+            headers: req.headers,
+        },
+    })
     const { url, anonKey, isConfigured } = getPublicSupabaseConfig()
 
     if (!isConfigured) {
@@ -17,7 +23,19 @@ export async function middleware(req) {
         return res
     }
 
-    const supabase = createMiddlewareClient({ req, res }, { supabaseUrl: url, supabaseKey: anonKey })
+    const supabase = createServerClient(url, anonKey, {
+        cookies: {
+            get(name) {
+                return req.cookies.get(name)?.value
+            },
+            set(name, value, options) {
+                res.cookies.set({ name, value, ...options })
+            },
+            remove(name, options) {
+                res.cookies.set({ name, value: "", ...options })
+            },
+        },
+    })
 
     const {
         data: { user },
