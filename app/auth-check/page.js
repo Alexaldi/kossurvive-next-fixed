@@ -1,16 +1,19 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getSupabaseServerConfig } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
 export default async function AuthCheckPage() {
-    let supabase
+    const supabase = createClient()
 
-    try {
-        supabase = createClient()
-    } catch (error) {
-        console.error("Supabase client init failed:", error)
+    if (!supabase) {
         return (
-            <pre>{JSON.stringify({ user: null, error: error.message }, null, 2)}</pre>
+            <pre>
+                {JSON.stringify(
+                    { user: null, error: getSupabaseServerConfig().missingMessage },
+                    null,
+                    2
+                )}
+            </pre>
         )
     }
 
