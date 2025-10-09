@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import * as SupabaseSSR from "@supabase/ssr"
+import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
 
 const isDev = process.env.NODE_ENV === "development"
 
