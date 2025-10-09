@@ -1,4 +1,5 @@
 import ChatBot from "@/components/ChatBot"
+import EntryPreview from "@/components/home/EntryPreview"
 import Link from "next/link"
 import {
     AlarmClockCheck,
@@ -305,6 +306,8 @@ export default function AuthenticatedHome() {
                     Eksplor konten terbaru
                 </Link>
             </section>
+
+            <EntryPreview />
 
             <ChatBot />
         </div>

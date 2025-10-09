@@ -1,35 +1,39 @@
-// middleware.js
 import { NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
+import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
+
 const isDev = process.env.NODE_ENV === "development"
-const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 export async function middleware(req) {
-    const res = NextResponse.next()
+    const res = NextResponse.next({
+        request: {
+            headers: req.headers,
+        },
+    })
+    const { url, anonKey, isConfigured } = getPublicSupabaseConfig()
 
-    if (!hasSupabaseConfig) {
+    if (!isConfigured) {
+        warnMissingSupabaseConfig()
         if (isDev) {
             console.warn("⚠️ Supabase env belum di-set, middleware melewati proteksi auth.")
         }
         return res
     }
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        {
-            cookies: {
-                getAll: () => req.cookies.getAll(),
-                setAll: (cookies) => {
-                    cookies.forEach(({ name, value }) => req.cookies.set(name, value))
-                    res.cookies.set(cookies)
-                },
+    const supabase = createServerClient(url, anonKey, {
+        cookies: {
+            get(name) {
+                return req.cookies.get(name)?.value
             },
-        }
-    )
+            set(name, value, options) {
+                res.cookies.set({ name, value, ...options })
+            },
+            remove(name, options) {
+                res.cookies.set({ name, value: "", ...options })
+            },
+        },
+    })
 
     const {
         data: { user },
@@ -42,33 +46,33 @@ export async function middleware(req) {
         console.log("🔍 Error:", error)
     }
 
+    if (error && isDev) {
+        console.warn("⚠️ Supabase middleware warning:", error.message)
+    }
+
     const publicPaths = ["/", "/login", "/register"]
     const authOnlyPaths = ["/login", "/register"]
     const isAuthCallback = req.nextUrl.pathname === "/auth/callback"
 
-    // 1️⃣ kalau BELUM login → tendang ke /login (kecuali di path /login & /register)
     if (!user && !publicPaths.includes(req.nextUrl.pathname) && !isAuthCallback) {
-        if (isDev) console.log("⚠️ Redirecting: Not logged in")
         const redirectUrl = req.nextUrl.clone()
         redirectUrl.pathname = "/login"
+        if (req.nextUrl.pathname !== "/login") {
+            redirectUrl.searchParams.set("next", req.nextUrl.pathname)
+        }
         return NextResponse.redirect(redirectUrl)
     }
 
-    // 2️⃣ kalau SUDAH login → jangan bisa buka halaman auth atau landing
     if (user && (authOnlyPaths.includes(req.nextUrl.pathname) || req.nextUrl.pathname === "/")) {
-        if (isDev) console.log("⚠️ Redirecting: Already logged in")
         const redirectUrl = req.nextUrl.clone()
         redirectUrl.pathname = "/home"
         return NextResponse.redirect(redirectUrl)
     }
 
-    // 3️⃣ kalau admin path tapi role bukan admin → tendang ke root
     if (user) {
         const role = user.user_metadata?.role || "user"
-        if (isDev) console.log("✅ Role:", role)
 
         if (req.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
-            if (isDev) console.log("⛔ Access denied: not admin")
             const redirectUrl = req.nextUrl.clone()
             redirectUrl.pathname = "/home"
             return NextResponse.redirect(redirectUrl)
@@ -80,7 +84,6 @@ export async function middleware(req) {
 
 export const config = {
     matcher: [
-        // cek hanya untuk route aplikasi
         "/((?!_next/static|_next/image|favicon.ico|Logo.png|api/public).*)",
     ],
 }

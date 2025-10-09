@@ -16,4 +16,20 @@ model UserProfile {
   displayName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  entries     WellnessEntry[]
+}
+
+model WellnessEntry {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  mood        String?
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
