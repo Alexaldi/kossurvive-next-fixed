@@ -1,11 +1,25 @@
-
-import { getUser } from '@/lib/store';
-import { defaultScore } from '@/lib/reco';
+import { successResponse, errorResponse } from "@/lib/api/response"
+import { requireUserSession } from "@/lib/auth/session"
+import { getDatabaseConfig } from "@/lib/env/server"
+import { buildRecommendation, ensureProfile } from "./helpers"
 
 export async function GET() {
-  const all = globalThis.__store || {};
-  const email = Object.keys(all)[0];
-  const user = email ? all[email] : null;
-  const score = user?.score || defaultScore();
-  return new Response(JSON.stringify({ score }), { headers:{'Content-Type':'application/json'} });
+  const { isConfigured, missingMessage } = getDatabaseConfig()
+  if (!isConfigured) {
+    return errorResponse(missingMessage, 503)
+  }
+
+  const { user, response } = await requireUserSession()
+  if (!user) {
+    return response
+  }
+
+  try {
+    const profile = await ensureProfile(user)
+    const recommendation = await buildRecommendation(profile)
+    return successResponse("Rekomendasi berhasil dihitung.", recommendation)
+  } catch (error) {
+    console.error("Gagal menghitung rekomendasi:", error)
+    return errorResponse("Tidak dapat memuat rekomendasi.", 500)
+  }
 }
