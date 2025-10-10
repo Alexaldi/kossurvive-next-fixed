@@ -12,26 +12,22 @@ export default function Belajar() {
   // ✅ Ambil data dari API
   useEffect(() => {
     async function loadCourses() {
-      const data = await track(() =>
-        fetch("/api/courses").then((r) => r.json())
-      );
-      setItems(data);
+      try {
+        const response = await track(() => fetch("/api/courses"));
+        const payload = await response.json();
+        if (!response.ok || payload.status !== "success") return;
+        setItems(payload.data?.courses || []);
+        const progressMap = {};
+        for (const entry of payload.data?.progress || []) {
+          progressMap[entry.resourceId] = entry.watched;
+        }
+        setWatched(progressMap);
+      } catch (error) {
+        console.error("Gagal memuat kursus", error);
+      }
     }
     loadCourses();
   }, [track]);
-
-  // ✅ Load progress dari localStorage saat pertama kali
-  useEffect(() => {
-    const saved = localStorage.getItem("watchedCourses");
-    if (saved) {
-      setWatched(JSON.parse(saved));
-    }
-  }, []);
-
-  // ✅ Simpan progress ke localStorage setiap kali berubah
-  useEffect(() => {
-    localStorage.setItem("watchedCourses", JSON.stringify(watched));
-  }, [watched]);
 
   // ✅ Tambahkan konfirmasi saat user close / refresh tab
   useEffect(() => {
@@ -58,9 +54,26 @@ export default function Belajar() {
   }, [items, q]);
 
   // ✅ Tandai sudah ditonton + tampilkan popup
-  const markAsWatched = (id) => {
-    setWatched((prev) => ({ ...prev, [id]: true }));
-    setToast(true); // popup aktif dan tetap tampil
+  const markAsWatched = async (id) => {
+    setToast(true);
+    try {
+      const response = await track(() =>
+        fetch(`/api/courses/${id}/progress`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ watched: true }),
+        })
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.status !== "success") {
+        console.error("Gagal menyimpan progress", payload?.message);
+        setToast(false);
+        return;
+      }
+      setWatched((prev) => ({ ...prev, [id]: true }));
+    } catch (error) {
+      console.error("Gagal menyimpan progress", error);
+    }
   };
 
   // ✅ Hitung progress global

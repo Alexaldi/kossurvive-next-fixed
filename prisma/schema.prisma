@@ -9,14 +9,20 @@ datasource db {
 }
 
 model UserProfile {
-  id          String   @id @default(uuid())
-  supabaseId  String   @unique
-  email       String?
-  role        String   @default("user")
-  displayName String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  entries     WellnessEntry[]
+  id           String              @id @default(uuid())
+  supabaseId   String              @unique
+  email        String?
+  role         String              @default("user")
+  displayName  String?
+  preferences  String[]            @default([])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  entries      WellnessEntry[]
+  interactions RecipeInteraction[]
+  workoutLogs  WorkoutSession[]
+  moodLogs     MoodLog[]
+  activities   Activity[]
+  learning     LearningProgress[]
 }
 
 model WellnessEntry {
@@ -32,4 +38,109 @@ model WellnessEntry {
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Recipe {
+  id          String   @id
+  name        String
+  estCost     Int
+  categories  String[]
+  nutrients   Json
+  ingredients String[]
+  howto       String
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  interactions RecipeInteraction[]
+}
+
+model RecipeInteraction {
+  id             String   @id @default(uuid())
+  userId         String
+  recipeId       String
+  liked          Boolean  @default(false)
+  saved          Boolean  @default(false)
+  viewCount      Int      @default(0)
+  lastInteracted DateTime @default(now())
+
+  user   UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId], name: "user_recipe_unique")
+  @@index([recipeId])
+}
+
+model Workout {
+  id        String   @id
+  name      String
+  moves     String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions WorkoutSession[]
+}
+
+model WorkoutSession {
+  id          String   @id @default(uuid())
+  userId      String
+  workoutId   String
+  performedAt DateTime @default(now())
+
+  user    UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout Workout     @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([workoutId])
+}
+
+model MoodLog {
+  id        String   @id @default(uuid())
+  userId    String
+  mood      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  workout   String
+  createdAt DateTime @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model LearningResource {
+  id        String   @id
+  title     String
+  category  String
+  type      String
+  summary   String
+  link      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  progress LearningProgress[]
+}
+
+model LearningProgress {
+  id         String   @id @default(uuid())
+  userId     String
+  resourceId String
+  watched    Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+
+  user     UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource LearningResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceId], name: "user_resource_unique")
+  @@index([resourceId])
 }
