@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client"
+import { COURSES, RECIPES, WORKOUTS } from "../lib/data.js"
 
 const prisma = new PrismaClient()
 
@@ -14,8 +15,76 @@ async function main() {
             displayName: "Contoh Pengguna",
             email: "user@example.com",
             role: "user",
+            preferences: ["murah", "cepat"],
         },
     })
+
+    await Promise.all(
+        RECIPES.map((recipe) =>
+            prisma.recipe.upsert({
+                where: { id: recipe.id },
+                update: {
+                    name: recipe.name,
+                    estCost: recipe.estCost,
+                    categories: recipe.categories,
+                    nutrients: recipe.nutrients,
+                    ingredients: recipe.ingredients,
+                    howto: recipe.howto,
+                    image: recipe.image,
+                },
+                create: {
+                    id: recipe.id,
+                    name: recipe.name,
+                    estCost: recipe.estCost,
+                    categories: recipe.categories,
+                    nutrients: recipe.nutrients,
+                    ingredients: recipe.ingredients,
+                    howto: recipe.howto,
+                    image: recipe.image,
+                },
+            })
+        )
+    )
+
+    await Promise.all(
+        WORKOUTS.map((workout) =>
+            prisma.workout.upsert({
+                where: { id: workout.id },
+                update: {
+                    name: workout.name,
+                    moves: workout.moves,
+                },
+                create: {
+                    id: workout.id,
+                    name: workout.name,
+                    moves: workout.moves,
+                },
+            })
+        )
+    )
+
+    await Promise.all(
+        COURSES.map((course) =>
+            prisma.learningResource.upsert({
+                where: { id: course.id },
+                update: {
+                    title: course.title,
+                    category: course.category,
+                    type: course.type,
+                    summary: course.summary,
+                    link: course.link,
+                },
+                create: {
+                    id: course.id,
+                    title: course.title,
+                    category: course.category,
+                    type: course.type,
+                    summary: course.summary,
+                    link: course.link,
+                },
+            })
+        )
+    )
 
     await prisma.wellnessEntry.deleteMany({ where: { userId: seedUser.id } })
 

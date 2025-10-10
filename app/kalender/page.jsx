@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./kalender.css";
@@ -11,10 +11,27 @@ export default function Kalender() {
   const [activities, setActivities] = useState([]);
   const router = useRouter();
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("activities")) || [];
-    if (Array.isArray(saved)) setActivities(saved);
+  const loadActivities = useCallback(async () => {
+    try {
+      const response = await fetch("/api/activities");
+      const payload = await response.json();
+      if (!response.ok || payload.status !== "success") return;
+      const list = Array.isArray(payload.data?.activities)
+        ? payload.data.activities.map((item) => ({
+            id: item.id,
+            date: item.date,
+            workout: item.workout,
+          }))
+        : [];
+      setActivities(list);
+    } catch (error) {
+      console.error("Gagal memuat aktivitas", error);
+    }
   }, []);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
 
   const handleTambah = () => {
     const localDate = formatLocalDate(date);
@@ -24,8 +41,9 @@ export default function Kalender() {
 
   const handleHapusSemua = () => {
     if (confirm("Yakin ingin menghapus semua aktivitas?")) {
-      localStorage.removeItem("activities");
-      setActivities([]);
+      fetch("/api/activities", { method: "DELETE" })
+        .then(() => loadActivities())
+        .catch((error) => console.error("Gagal menghapus aktivitas", error));
     }
   };
 
@@ -73,12 +91,19 @@ export default function Kalender() {
           <p className="text-gray-400">Belum ada aktivitas tersimpan.</p>
         ) : (
           <div className="grid gap-3">
-            {activities.map((a, i) => (
+            {activities.map((a) => (
               <div
-                key={i}
+                key={a.id}
                 className="border border-gray-700 p-3 rounded-xl bg-gray-800"
               >
-                <p className="text-gray-300">{a.date}</p>
+                <p className="text-gray-300">
+                  {new Date(a.date).toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
                 <p className="text-emerald-400 font-semibold">{a.workout}</p>
               </div>
             ))}
