@@ -30,3 +30,5 @@ npm run db:seed             # opsional untuk mengisi data awal
 npm run dev
 # kemudian buka http://localhost:3000
 ```
+
+try lagi
