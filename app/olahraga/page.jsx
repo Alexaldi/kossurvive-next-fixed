@@ -68,8 +68,14 @@ export default function Olahraga() {
 
   useEffect(() => {
     async function loadWorkouts() {
-      const data = await track(() => fetch("/api/workouts").then((r) => r.json()));
-      setWorkouts(data);
+      try {
+        const response = await track(() => fetch("/api/workouts"));
+        const payload = await response.json();
+        if (!response.ok || payload.status !== "success") return;
+        setWorkouts(payload.data?.workouts || []);
+      } catch (error) {
+        console.error("Gagal memuat workout", error);
+      }
     }
     loadWorkouts();
   }, [track]);
@@ -81,13 +87,26 @@ export default function Olahraga() {
       return;
     }
 
-    await track(() =>
-      fetch("/api/mood", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mood }),
-      })
-    );
+    try {
+      const response = await track(() =>
+        fetch("/api/mood", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mood }),
+        })
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.status !== "success") {
+        setToast(payload?.message ?? "Gagal menyimpan mood.");
+        setTimeout(() => setToast(""), 2500);
+        return;
+      }
+    } catch (error) {
+      console.error("Gagal menyimpan mood", error);
+      setToast("Gagal menyimpan mood.");
+      setTimeout(() => setToast(""), 2500);
+      return;
+    }
 
     setMessage(MOOD_SOLUTIONS[mood] || "");
     setRecommendedWorkout(WORKOUT_SUGGESTIONS[mood] || null);

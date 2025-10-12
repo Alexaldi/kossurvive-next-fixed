@@ -1,7 +1,7 @@
-import prisma from "@/lib/prisma"
 import { successResponse, errorResponse } from "@/lib/api/response"
 import { requireUserSession } from "@/lib/auth/session"
 import { getDatabaseConfig } from "@/lib/env/server"
+import { ensureProfile } from "@/lib/profile"
 
 export async function POST() {
     const { isConfigured, missingMessage } = getDatabaseConfig()
@@ -15,27 +15,8 @@ export async function POST() {
         return response
     }
 
-    const displayName =
-        user.user_metadata?.full_name ??
-        user.user_metadata?.name ??
-        user.user_metadata?.display_name ??
-        null
-
     try {
-        const profile = await prisma.userProfile.upsert({
-            where: { supabaseId: user.id },
-            update: {
-                email: user.email ?? null,
-                role: user.user_metadata?.role ?? "user",
-                displayName,
-            },
-            create: {
-                supabaseId: user.id,
-                email: user.email ?? null,
-                role: user.user_metadata?.role ?? "user",
-                displayName,
-            },
-        })
+        const profile = await ensureProfile(user)
 
         return successResponse("Profil berhasil disinkronkan.", { profile })
     } catch (error) {
