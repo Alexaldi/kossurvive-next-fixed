@@ -3,17 +3,33 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookmarkPlus, ChefHat, Flame, Heart, Leaf, Sparkles, Timer, UtensilsCrossed } from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
-import { rankRecipes } from "@/lib/reco";
-import { RECIPES } from "@/lib/data";
 import { useAsyncLoader } from "@/components/RouteLoader";
 
 function useUser() {
   const { track } = useAsyncLoader();
   const [user, setUser] = useState(null);
   useEffect(() => {
-    track(() => fetch("/api/user").then((r) => r.json()))
-      .then(setUser)
-      .catch(() => setUser(null));
+    let cancelled = false
+
+    async function load() {
+      try {
+        const response = await track(() => fetch("/api/user"))
+        const payload = await response.json()
+        if (!response.ok || payload.status !== "success") {
+          if (!cancelled) setUser(null)
+          return
+        }
+        if (!cancelled) setUser(payload.data)
+      } catch (error) {
+        if (!cancelled) setUser(null)
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
   }, [track]);
   return [user, setUser];
 }
@@ -21,7 +37,7 @@ function useUser() {
 export default function Feed() {
   const { track } = useAsyncLoader();
   const [user] = useUser();
-  const [items, setItems] = useState(RECIPES);
+  const [items, setItems] = useState([]);
   const [score, setScore] = useState({});
   const observer = useRef(null);
 
@@ -44,12 +60,25 @@ export default function Feed() {
   }, [items, score]);
 
   useEffect(() => {
+    let cancelled = false
+
     async function init() {
-      const sres = await track(() => fetch("/api/recommend").then((r) => r.json()));
-      setScore(sres.score || {});
-      setItems(rankRecipes(sres.score));
+      try {
+        const response = await track(() => fetch("/api/recommend"));
+        const payload = await response.json();
+        if (!response.ok || payload.status !== "success") return;
+        if (cancelled) return;
+        setScore(payload.data?.score || {});
+        setItems(payload.data?.recipes || []);
+      } catch (error) {
+        console.error("Gagal memuat rekomendasi:", error);
+      }
     }
     init();
+
+    return () => {
+      cancelled = true;
+    };
   }, [track]);
 
   useEffect(() => {
@@ -58,11 +87,16 @@ export default function Feed() {
         entries.forEach(async (e) => {
           if (e.isIntersecting) {
             const id = e.target.getAttribute("data-id");
-            await fetch("/api/recommend/view", {
+            const response = await fetch("/api/recommend/view", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ recipeId: id }),
             });
+            const payload = await response.json().catch(() => null);
+            if (response.ok && payload?.status === "success") {
+              setScore(payload.data?.score || {});
+              setItems(payload.data?.recipes || []);
+            }
             e.target.classList.add("ring-2", "ring-emerald-600");
             setTimeout(
               () => e.target.classList.remove("ring-2", "ring-emerald-600"),
@@ -81,14 +115,15 @@ export default function Feed() {
 
   async function act(id, action) {
     await track(async () => {
-      await fetch("/api/recommend/" + action, {
+      const response = await fetch("/api/recommend/" + action, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipeId: id }),
       });
-      const sres = await fetch("/api/recommend").then((r) => r.json());
-      setScore(sres.score || {});
-      setItems(rankRecipes(sres.score));
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.status !== "success") return;
+      setScore(payload.data?.score || {});
+      setItems(payload.data?.recipes || []);
     });
   }
 

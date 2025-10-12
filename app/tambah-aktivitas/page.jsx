@@ -15,9 +15,10 @@ export default function TambahAktivitas() {
 
     async function loadWorkouts() {
       try {
-        const data = await track(() => fetch("/api/workouts").then((r) => r.json()));
-        if (!isCancelled) {
-          setWorkouts(data);
+        const response = await track(() => fetch("/api/workouts"));
+        const payload = await response.json();
+        if (!isCancelled && response.ok && payload.status === "success") {
+          setWorkouts(payload.data?.workouts || []);
         }
       } catch (error) {
         console.error("Failed to load workouts", error);
@@ -36,19 +37,32 @@ export default function TambahAktivitas() {
     if (d) setSelectedDate(d);
   }, []);
 
-  const saveActivity = () => {
+  const saveActivity = async () => {
     if (!selectedWorkout) return alert("Pilih olahraga dulu!");
-    let existing = [];
-    try {
-      existing = JSON.parse(localStorage.getItem("activities")) || [];
-      if (!Array.isArray(existing)) existing = [];
-    } catch {
-      existing = [];
-    }
+    if (!selectedDate) return alert("Tanggal tidak valid. Kembali ke kalender dan pilih ulang.");
+    const body = {
+      date: selectedDate,
+      workout: selectedWorkout,
+    };
 
-    existing.push({ date: selectedDate, workout: selectedWorkout });
-    localStorage.setItem("activities", JSON.stringify(existing));
-    router.push("/kalender");
+    try {
+      const response = await track(() =>
+        fetch("/api/activities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        })
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.status !== "success") {
+        alert(payload?.message ?? "Gagal menyimpan aktivitas.");
+        return;
+      }
+      router.push("/kalender");
+    } catch (error) {
+      console.error("Gagal menyimpan aktivitas", error);
+      alert("Gagal menyimpan aktivitas.");
+    }
   };
 
   return (

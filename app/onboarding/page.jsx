@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CATEGORIES } from "@/lib/data";
 import { useAsyncLoader } from "@/components/RouteLoader";
 
@@ -8,13 +8,43 @@ export default function Onboarding() {
   const [email, setEmail] = useState("");
   const [prefs, setPrefs] = useState([]);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
   const { track } = useAsyncLoader();
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProfile() {
+      try {
+        const response = await track(() => fetch("/api/user"))
+        const payload = await response.json()
+
+        if (!response.ok || payload.status !== "success") return
+
+        if (cancelled) return
+
+        const data = payload.data ?? {}
+        setName(data.name ?? "")
+        setEmail(data.email ?? "")
+        setPrefs(Array.isArray(data.prefs) ? data.prefs : [])
+      } catch (error) {
+        console.warn("Gagal memuat profil onboarding:", error)
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [track])
 
   const toggle = (c) => {
     setPrefs((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
   };
 
   async function save() {
+    setError("")
     const res = await track(() =>
       fetch("/api/user", {
         method: "POST",
@@ -22,7 +52,12 @@ export default function Onboarding() {
         body: JSON.stringify({ name, email, prefs }),
       })
     );
-    if (res.ok) window.location.href = "/feed";
+    const payload = await res.json().catch(() => null)
+    if (!res.ok || payload?.status !== "success") {
+      setError(payload?.message ?? "Gagal menyimpan profil.")
+      return
+    }
+    window.location.href = "/feed";
   }
 
   return (
@@ -91,9 +126,8 @@ export default function Onboarding() {
           </button>
         </div>
       </div>
-      <p className="text-sm text-gray-400">
-        Data tersimpan sementara (in-memory) untuk demo.
-      </p>
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      <p className="text-sm text-gray-400">Data preferensi kamu kini tersimpan aman di database.</p>
     </div>
   );
 }
