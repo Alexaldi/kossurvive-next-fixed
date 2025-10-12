@@ -35,4 +35,4 @@ npm run dev
 # kemudian buka http://localhost:3000
 ```
 
-try
+try lagi
