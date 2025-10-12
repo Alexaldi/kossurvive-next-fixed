@@ -12,8 +12,9 @@ Implementasi cepat dari konsep di dokumen: feed resep ala FYP, olahraga kos + mo
    cp .env.example .env.local
    ```
 2. Edit `.env.local` dan isi:
-   - `DATABASE_URL` dengan connection string Postgres.
-   - `DIRECT_URL` bila ingin memakai connection string non-pooled (bisa dikosongkan).
+   - `DATABASE_URL` dengan connection string Postgres untuk aplikasi. Saat memakai Supabase, Anda boleh menggunakan host pooler (`*.pooler.supabase.com:6543`).
+   - `DIRECT_URL` untuk koneksi langsung (wajib mengarah ke port 5432 di Supabase) agar migrasi dan seed tidak melewati pooler.
+   - `PRISMA_SEED_DATABASE_URL` (opsional) bila ingin memakai koneksi berbeda khusus untuk `prisma db seed`; bila kosong maka akan memakai `DIRECT_URL`.
    - `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY` dari proyek Supabase Anda.
    - `SUPABASE_SERVICE_ROLE_KEY` bila butuh akses admin (opsional).
 

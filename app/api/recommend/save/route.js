@@ -35,10 +35,16 @@ export async function POST(request) {
 
     const profile = await ensureProfile(user)
 
+    const existing = await prisma.recipeInteraction.findUnique({
+      where: { user_recipe_unique: { userId: profile.id, recipeId } },
+    })
+
+    const nextSaved = existing ? !existing.saved : true
+
     await prisma.recipeInteraction.upsert({
       where: { user_recipe_unique: { userId: profile.id, recipeId } },
       update: {
-        saved: true,
+        saved: nextSaved,
         lastInteracted: new Date(),
       },
       create: {
@@ -49,7 +55,8 @@ export async function POST(request) {
     })
 
     const recommendation = await buildRecommendation(profile)
-    return successResponse("Resep disimpan.", recommendation)
+    const message = nextSaved ? "Resep disimpan." : "Simpanan dihapus."
+    return successResponse(message, recommendation)
   } catch (error) {
     console.error("Gagal memproses simpan resep:", error)
     return errorResponse("Tidak dapat menyimpan interaksi resep.", 500)

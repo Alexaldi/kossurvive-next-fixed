@@ -49,7 +49,7 @@ export default function Onboarding() {
       fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, prefs }),
+        body: JSON.stringify({ prefs }),
       })
     );
     const payload = await res.json().catch(() => null)
@@ -64,19 +64,26 @@ export default function Onboarding() {
     <div className="grid gap-6">
       <div className="card p-6">
         <h1 className="text-2xl font-bold mb-2">Pilih kategori makanan</h1>
-        <div className="grid sm:grid-cols-2 gap-4 mt-4">
-          <input
-            className="input"
-            placeholder="Nama"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="input"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <div className="mt-4 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4">
+          <p className="text-sm text-slate-300">
+            Profil kamu sudah kami tarik dari akun yang sedang login. Preferensi yang
+            dipilih di bawah akan langsung terhubung ke database supaya rekomendasi
+            resep bisa terasa personal.
+          </p>
+          <dl className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
+            <div>
+              <dt className="font-semibold text-slate-100">Nama</dt>
+              <dd className="mt-1 rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 text-slate-200">
+                {name || "Mengambil dari Supabase"}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-100">Email</dt>
+              <dd className="mt-1 rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 text-slate-200">
+                {email || "Mengambil dari Supabase"}
+              </dd>
+            </div>
+          </dl>
         </div>
 
         <p className="mt-4 text-gray-300">Pilih preferensi makanan:</p>

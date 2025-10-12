@@ -35,10 +35,16 @@ export async function POST(request) {
 
     const profile = await ensureProfile(user)
 
+    const existing = await prisma.recipeInteraction.findUnique({
+      where: { user_recipe_unique: { userId: profile.id, recipeId } },
+    })
+
+    const nextLiked = existing ? !existing.liked : true
+
     await prisma.recipeInteraction.upsert({
       where: { user_recipe_unique: { userId: profile.id, recipeId } },
       update: {
-        liked: true,
+        liked: nextLiked,
         lastInteracted: new Date(),
       },
       create: {
@@ -49,7 +55,8 @@ export async function POST(request) {
     })
 
     const recommendation = await buildRecommendation(profile)
-    return successResponse("Resep disukai.", recommendation)
+    const message = nextLiked ? "Resep disukai." : "Suka dihapus."
+    return successResponse(message, recommendation)
   } catch (error) {
     console.error("Gagal memproses like resep:", error)
     return errorResponse("Tidak dapat menyimpan interaksi resep.", 500)

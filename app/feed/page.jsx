@@ -1,7 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookmarkPlus, ChefHat, Flame, Heart, Leaf, Sparkles, Timer, UtensilsCrossed } from "lucide-react";
+import {
+  Bookmark,
+  ChefHat,
+  Flame,
+  Heart,
+  Leaf,
+  Sparkles,
+  Timer,
+  UtensilsCrossed,
+} from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
 import { useAsyncLoader } from "@/components/RouteLoader";
 
@@ -298,17 +307,33 @@ export default function Feed() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => act(r.id, "like")}
-                        className="btn btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
+                        className={`btn transition ${
+                          r.liked
+                            ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                            : "btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
+                        }`}
+                        aria-pressed={r.liked}
                       >
-                        <Heart className="h-4 w-4" aria-hidden="true" />
-                        Suka
+                        <Heart
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                          fill={r.liked ? "currentColor" : "none"}
+                        />
+                        {r.liked ? "Disukai" : "Suka"}
                       </button>
                       <button
                         onClick={() => act(r.id, "save")}
-                        className="btn btn-primary"
+                        className={`btn btn-primary transition ${
+                          r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
+                        }`}
+                        aria-pressed={r.saved}
                       >
-                        <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
-                        Simpan
+                        <Bookmark
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                          fill={r.saved ? "currentColor" : "none"}
+                        />
+                        {r.saved ? "Tersimpan" : "Simpan"}
                       </button>
                     </div>
                   </div>

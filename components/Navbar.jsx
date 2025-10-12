@@ -12,6 +12,7 @@ const AUTH_EXCLUDED_PATHS = ["/login", "/register"]
 
 const navigationLinks = [
     { href: "/feed", label: "Makanan Sehat" },
+    { href: "/favorit", label: "Favorit" },
     { href: "/olahraga", label: "Olahraga" },
     { href: "/belajar", label: "Belajar" },
     { href: "/kalender", label: "Kalender" },
