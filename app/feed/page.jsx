@@ -48,6 +48,7 @@ export default function Feed() {
   const [user] = useUser();
   const [items, setItems] = useState([]);
   const [score, setScore] = useState({});
+  const [pendingAction, setPendingAction] = useState(null);
   const observer = useRef(null);
 
   const topCategories = useMemo(() => {
@@ -123,16 +124,26 @@ export default function Feed() {
   }, [items]);
 
   async function act(id, action) {
+    const target = items.find((recipe) => recipe.id === id);
+    const isSaveAction = action === "save";
+    const method = isSaveAction && target?.saved ? "DELETE" : "POST";
+    const actionKey = `${id}:${action}`;
+
+    setPendingAction(actionKey);
     await track(async () => {
-      const response = await fetch("/api/recommend/" + action, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: id }),
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.status !== "success") return;
-      setScore(payload.data?.score || {});
-      setItems(payload.data?.recipes || []);
+      try {
+        const response = await fetch("/api/recommend/" + action, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipeId: id }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.status !== "success") return;
+        setScore(payload.data?.score || {});
+        setItems(payload.data?.recipes || []);
+      } finally {
+        setPendingAction((current) => (current === actionKey ? null : current));
+      }
     });
   }
 
@@ -313,6 +324,7 @@ export default function Feed() {
                             : "btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
                         }`}
                         aria-pressed={r.liked}
+                        disabled={pendingAction === `${r.id}:like`}
                       >
                         <Heart
                           className="h-4 w-4"
@@ -327,6 +339,7 @@ export default function Feed() {
                           r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
                         }`}
                         aria-pressed={r.saved}
+                        disabled={pendingAction === `${r.id}:save`}
                       >
                         <Bookmark
                           className="h-4 w-4"

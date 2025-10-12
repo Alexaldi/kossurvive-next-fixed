@@ -107,7 +107,7 @@ function RecipeCollection({
 
               <div className="flex flex-wrap gap-2 border-t border-slate-800/60 pt-4">
                 <button
-                  onClick={() => onToggleLike(item.id)}
+                  onClick={() => onToggleLike(item.id, item.liked)}
                   className={`btn transition ${
                     item.liked
                       ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
@@ -124,7 +124,7 @@ function RecipeCollection({
                   {item.liked ? "Disukai" : "Suka"}
                 </button>
                 <button
-                  onClick={() => onToggleSave(item.id)}
+                  onClick={() => onToggleSave(item.id, item.saved)}
                   className={`btn btn-primary transition ${
                     item.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
                   }`}
@@ -183,12 +183,16 @@ export default function FavoriteRecipesPage() {
   }, [loadFavorites]);
 
   const toggle = useCallback(
-    async (recipeId, action) => {
-      setPendingAction(`${recipeId}:${action}`);
+    async (recipeId, action, currentState = false) => {
+      const isSaveAction = action === "save";
+      const method = isSaveAction && currentState ? "DELETE" : "POST";
+      const actionKey = `${recipeId}:${action}`;
+
+      setPendingAction(actionKey);
       try {
         const response = await track(() =>
           fetch(`/api/recommend/${action}`, {
-            method: "POST",
+            method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ recipeId }),
           })
@@ -202,7 +206,7 @@ export default function FavoriteRecipesPage() {
         console.error("Gagal memperbarui interaksi resep:", error);
         setState((prev) => ({ ...prev, error: error.message }));
       } finally {
-        setPendingAction(null);
+        setPendingAction((current) => (current === actionKey ? null : current));
       }
     },
     [loadFavorites, track]
@@ -283,8 +287,8 @@ export default function FavoriteRecipesPage() {
                 }
               />
             }
-            onToggleLike={(id) => toggle(id, "like")}
-            onToggleSave={(id) => toggle(id, "save")}
+            onToggleLike={(id, liked) => toggle(id, "like", liked)}
+            onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
           />
 
@@ -307,8 +311,8 @@ export default function FavoriteRecipesPage() {
                 }
               />
             }
-            onToggleLike={(id) => toggle(id, "like")}
-            onToggleSave={(id) => toggle(id, "save")}
+            onToggleLike={(id, liked) => toggle(id, "like", liked)}
+            onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
           />
         </div>
