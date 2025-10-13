@@ -43,7 +43,7 @@ Implementasi cepat dari konsep di dokumen: feed resep ala FYP, olahraga kos + mo
 
 ## Modul Admin
 
-- Area admin hidup di route group `app/(admin)` dan tampil di URL `/admin/**` tanpa mengganggu struktur user (`app/(user)`).
+- Area admin hidup di route group `app/(admin)` (dengan segmen path `admin/…`) dan tampil di URL `/admin/**` tanpa mengganggu struktur user utama di `app/`.
 - Layout admin menampilkan topbar "KoSurvive Admin" dan tombol *Kembali ke situs utama* agar admin bisa melompat ke area publik kapan saja.
 - Halaman login `/admin/login` hanya menerima email + password Supabase Auth. Tidak ada opsi register atau OAuth. Gunakan akun dengan `user_metadata.role = "admin"` (contoh seed: `admin@kossurvive.com` / `123456`).
 - Sesi admin ditulis ke cookie server-side `sb-admin-auth-token`, terisolasi dari cookie user biasa. Middleware otomatis memblokir akses ke `/admin/**` jika cookie tersebut tidak valid.
