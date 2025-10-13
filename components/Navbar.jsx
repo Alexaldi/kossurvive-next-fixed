@@ -18,6 +18,7 @@ const navigationLinks = [
     { href: "/belajar", label: "Belajar" },
     { href: "/kalender", label: "Kalender" },
     { href: "/onboarding", label: "Pilih Makanan" },
+    { href: "/client", label: "Galeri Supabase" },
 ]
 
 const hiddenRoutes = ["/login", "/register", "/auth/callback"]
