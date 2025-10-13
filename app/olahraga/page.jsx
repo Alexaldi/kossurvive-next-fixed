@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Brain, Dumbbell, HeartPulse, MoonStar, Smile, Sparkles, SunMedium, Timer } from "lucide-react";
+import { Brain, Check, Dumbbell, HeartPulse, MoonStar, Smile, Sparkles, SunMedium, Timer } from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
 import { useAsyncLoader } from "@/components/RouteLoader";
 
@@ -64,6 +64,9 @@ export default function Olahraga() {
   const [message, setMessage] = useState("");
   const [toast, setToast] = useState("");
   const [recommendedWorkout, setRecommendedWorkout] = useState(null);
+  const [todayMood, setTodayMood] = useState(null);
+  const [isLoadingTodayMood, setIsLoadingTodayMood] = useState(true);
+  const [isSavingMood, setIsSavingMood] = useState(false);
   const { track } = useAsyncLoader();
 
   useEffect(() => {
@@ -80,6 +83,33 @@ export default function Olahraga() {
     loadWorkouts();
   }, [track]);
 
+  useEffect(() => {
+    async function loadTodayMood() {
+      try {
+        setIsLoadingTodayMood(true);
+        const response = await track(() => fetch("/api/mood"));
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.status !== "success") {
+          return;
+        }
+
+        const moodLog = payload?.data?.moodLog;
+        if (moodLog) {
+          setTodayMood(moodLog);
+          setMood(moodLog.mood);
+          setMessage(MOOD_SOLUTIONS[moodLog.mood] || "");
+          setRecommendedWorkout(WORKOUT_SUGGESTIONS[moodLog.mood] || null);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil mood hari ini", error);
+      } finally {
+        setIsLoadingTodayMood(false);
+      }
+    }
+
+    loadTodayMood();
+  }, [track]);
+
   async function submitMood() {
     if (!mood) {
       setToast("Silakan pilih mood dulu!");
@@ -87,6 +117,7 @@ export default function Olahraga() {
       return;
     }
 
+    setIsSavingMood(true);
     try {
       const response = await track(() =>
         fetch("/api/mood", {
@@ -101,18 +132,39 @@ export default function Olahraga() {
         setTimeout(() => setToast(""), 2500);
         return;
       }
+
+      const savedMoodLog = payload?.data?.moodLog;
+      if (savedMoodLog) {
+        setTodayMood(savedMoodLog);
+        setMood(savedMoodLog.mood);
+      }
     } catch (error) {
       console.error("Gagal menyimpan mood", error);
       setToast("Gagal menyimpan mood.");
       setTimeout(() => setToast(""), 2500);
       return;
+    } finally {
+      setIsSavingMood(false);
     }
 
     setMessage(MOOD_SOLUTIONS[mood] || "");
     setRecommendedWorkout(WORKOUT_SUGGESTIONS[mood] || null);
-    setMood("");
-    setToast("Rekaman anda sudah di simpan !");
+    setToast(todayMood ? "Mood harian kamu diperbarui." : "Mood harian kamu sudah disimpan!");
     setTimeout(() => setToast(""), 2500);
+  }
+
+  const hasMoodToday = Boolean(todayMood);
+
+  function formatMoodTimestamp(value) {
+    if (!value) return "";
+    try {
+      return new Intl.DateTimeFormat("id-ID", {
+        dateStyle: "long",
+        timeStyle: "short",
+      }).format(new Date(value));
+    } catch (error) {
+      return "";
+    }
   }
 
   return (
@@ -229,19 +281,44 @@ export default function Olahraga() {
             </div>
           </div>
 
+          {hasMoodToday && (
+            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              <p className="font-semibold text-emerald-50">Mood kamu hari ini sudah tercatat.</p>
+              <p className="mt-1 text-emerald-100/80">
+                <span className="font-semibold">{todayMood?.mood}</span>
+                {todayMood?.createdAt && (
+                  <span className="ml-1 text-xs text-emerald-100/70">
+                    (dicatat {formatMoodTimestamp(todayMood.createdAt)})
+                  </span>
+                )}
+              </p>
+              <p className="mt-2 text-xs text-emerald-100/70">
+                Kamu masih bisa memperbarui mood bila perasaanmu berubah hari ini.
+              </p>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2">
             {MOOD_CHOICES.map(({ value, label, hint, icon: Icon }) => (
               <button
                 key={value}
                 onClick={() => {
                   setMood(value);
+                  setMessage("");
+                  setRecommendedWorkout(null);
                 }}
-                className={`rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4 text-left transition duration-200 hover:border-emerald-400/40 hover:bg-slate-900/60 ${
+                aria-pressed={mood === value}
+                className={`relative rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 ${
                   mood === value
-                    ? "border-emerald-400/60 bg-emerald-500/10 text-white shadow-inner shadow-emerald-500/30"
-                    : "text-slate-100"
+                    ? "border-emerald-400/80 bg-emerald-500/15 text-white shadow-[0_10px_40px_-25px_rgba(16,185,129,0.9)]"
+                    : "text-slate-100 hover:border-emerald-400/40 hover:bg-slate-900/60"
                 }`}
               >
+                {mood === value && (
+                  <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-100">
+                    <Check className="h-4 w-4" aria-hidden="true" />Dipilih
+                  </span>
+                )}
                 <div className="flex items-start gap-3">
                   <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-200">
                     <Icon className="h-5 w-5" aria-hidden="true" />
@@ -255,8 +332,12 @@ export default function Olahraga() {
             ))}
           </div>
 
-          <button onClick={submitMood} className="btn btn-primary w-full sm:w-auto">
-            Simpan mood
+          <button
+            onClick={submitMood}
+            className="btn btn-primary w-full sm:w-auto"
+            disabled={isLoadingTodayMood || isSavingMood}
+          >
+            {hasMoodToday ? "Perbarui mood" : "Simpan mood"}
           </button>
 
           {message && (
