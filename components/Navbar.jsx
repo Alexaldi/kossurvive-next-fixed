@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { createClient } from "@/lib/supabase/client"
+import { FALLBACK_IMAGE_DATA_URL, resolveSupabaseImageUrl } from "@/lib/supabase/storage"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -17,9 +18,12 @@ const navigationLinks = [
     { href: "/belajar", label: "Belajar" },
     { href: "/kalender", label: "Kalender" },
     { href: "/onboarding", label: "Pilih Makanan" },
+    { href: "/client", label: "Galeri Supabase" },
 ]
 
 const hiddenRoutes = ["/login", "/register", "/auth/callback"]
+
+const LOGO_STORAGE_DESCRIPTOR = process.env.NEXT_PUBLIC_SUPABASE_LOGO_PATH ?? null
 
 export default function Navbar() {
     const isSupabaseConfigured = Boolean(
@@ -50,6 +54,12 @@ export default function Navbar() {
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [feedback, setFeedback] = useState(null)
     const profileSectionRef = useRef(null)
+    const [logoSrc, setLogoSrc] = useState(() =>
+        resolveSupabaseImageUrl(LOGO_STORAGE_DESCRIPTOR, {
+            supabase,
+            fallback: FALLBACK_IMAGE_DATA_URL,
+        }),
+    )
 
     const displayInitial = useMemo(() => {
         const source = userState.displayName ?? userState.email ?? ""
@@ -115,6 +125,75 @@ export default function Navbar() {
         return () => {
             isMounted = false
             authListener?.subscription?.unsubscribe()
+        }
+    }, [supabase])
+
+    useEffect(() => {
+        if (!supabase) {
+            setLogoSrc((current) =>
+                current ||
+                resolveSupabaseImageUrl(LOGO_STORAGE_DESCRIPTOR, {
+                    fallback: FALLBACK_IMAGE_DATA_URL,
+                }),
+            )
+            return
+        }
+
+        let ignore = false
+
+        const hydrateLogo = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("site_assets")
+                    .select("image_url, bucket, storage_bucket, path, storage_path, file_path")
+                    .eq("slug", "primary_logo")
+                    .maybeSingle()
+
+                if (ignore) return
+
+                if (error) {
+                    throw error
+                }
+
+                const descriptor = data
+                    ? data.image_url ??
+                      data.path ??
+                      data.storage_path ??
+                      data.file_path ?? {
+                          bucket: data.bucket ?? data.storage_bucket ?? null,
+                          path:
+                              data.path ??
+                              data.storage_path ??
+                              data.file_path ??
+                              null,
+                      }
+                    : LOGO_STORAGE_DESCRIPTOR
+
+                setLogoSrc(
+                    resolveSupabaseImageUrl(descriptor, {
+                        supabase,
+                        fallback: FALLBACK_IMAGE_DATA_URL,
+                    }),
+                )
+            } catch (error) {
+                if (process.env.NODE_ENV === "development") {
+                    console.warn("Gagal memuat logo dari Supabase:", error?.message ?? error)
+                }
+
+                setLogoSrc((current) =>
+                    current ||
+                    resolveSupabaseImageUrl(LOGO_STORAGE_DESCRIPTOR, {
+                        supabase,
+                        fallback: FALLBACK_IMAGE_DATA_URL,
+                    }),
+                )
+            }
+        }
+
+        hydrateLogo()
+
+        return () => {
+            ignore = true
         }
     }, [supabase])
 
@@ -213,12 +292,13 @@ export default function Navbar() {
                     <div className="flex flex-1 items-center gap-4">
                         <Link href="/home" className="flex items-center gap-3">
                             <Image
-                                src="/Logo.png"
+                                src={logoSrc}
                                 alt="KoSurvive Logo"
                                 width={120}
                                 height={48}
                                 className="h-12 w-auto"
                                 priority
+                                onError={() => setLogoSrc(FALLBACK_IMAGE_DATA_URL)}
                             />
                         </Link>
                     </div>

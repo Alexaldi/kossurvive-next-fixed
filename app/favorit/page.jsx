@@ -13,6 +13,8 @@ import {
 
 import PageHero from "@/components/ui/PageHero";
 import { useAsyncLoader } from "@/components/RouteLoader";
+import { createClient } from "@/lib/supabase/client";
+import { FALLBACK_IMAGE_DATA_URL, resolveSupabaseImageUrl } from "@/lib/supabase/storage";
 
 function EmptyState({ icon: Icon, title, description, action }) {
   return (
@@ -35,6 +37,7 @@ function RecipeCollection({
   onToggleLike,
   onToggleSave,
   pendingAction,
+  supabase,
 }) {
   if (!items.length) {
     return empty;
@@ -49,6 +52,10 @@ function RecipeCollection({
       <div className="grid gap-6 lg:grid-cols-2">
         {items.map((item) => {
           const lastInteracted = item.lastInteracted ? new Date(item.lastInteracted) : null;
+          const imageSrc = resolveSupabaseImageUrl(item.image, {
+            supabase,
+            fallback: FALLBACK_IMAGE_DATA_URL,
+          });
 
           return (
             <article
@@ -57,9 +64,15 @@ function RecipeCollection({
             >
             <div className="relative aspect-[4/3] overflow-hidden">
               <img
-                src={item.image}
+                src={imageSrc}
                 alt={item.name}
                 className="h-full w-full object-cover"
+                loading="lazy"
+                onError={(event) => {
+                  if (event.currentTarget.src !== FALLBACK_IMAGE_DATA_URL) {
+                    event.currentTarget.src = FALLBACK_IMAGE_DATA_URL;
+                  }
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent" />
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -150,6 +163,7 @@ function RecipeCollection({
 
 export default function FavoriteRecipesPage() {
   const { track } = useAsyncLoader();
+  const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState({
     loading: true,
     liked: [],
@@ -290,6 +304,7 @@ export default function FavoriteRecipesPage() {
             onToggleLike={(id, liked) => toggle(id, "like", liked)}
             onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
+            supabase={supabase}
           />
 
           <RecipeCollection
@@ -314,6 +329,7 @@ export default function FavoriteRecipesPage() {
             onToggleLike={(id, liked) => toggle(id, "like", liked)}
             onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
+            supabase={supabase}
           />
         </div>
       )}
