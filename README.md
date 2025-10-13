@@ -41,6 +41,14 @@ Implementasi cepat dari konsep di dokumen: feed resep ala FYP, olahraga kos + mo
    - Variabel Prisma/database lain seperti `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`, dll sesuai kebutuhan.
 3. Deploy ulang proyek. Next.js akan otomatis mengizinkan domain Supabase Storage berdasarkan `NEXT_PUBLIC_SUPABASE_URL`, jadi gambar publik langsung tersedia tanpa konfigurasi tambahan.
 
+## Modul Admin
+
+- Area admin dapat diakses melalui `/admin` dan hanya menerima login email/password Supabase Auth.
+- Pastikan akun admin memiliki `user_metadata.role = "admin"`; contoh kredensial uji coba: `admin@kossurvive.com` / `123456`.
+- Sesi admin disimpan di cookie server-side (`sb-admin-auth-token`) dan terpisah dari sesi user biasa.
+- Dashboard menyediakan CRUD untuk Resep, Workout, dan Materi Belajar, lengkap dengan unggah gambar ke Supabase Storage menggunakan `SUPABASE_SERVICE_ROLE_KEY`.
+- Tombol logout akan menghapus cookie admin dan mengarahkan kembali ke `/admin/login`.
+
 ## Instalasi Dependensi & Prisma
 ```bash
 npm install
@@ -54,5 +62,3 @@ npm run db:seed             # opsional untuk mengisi data awal
 npm run dev
 # kemudian buka http://localhost:3000
 ```
-
-try lagi
