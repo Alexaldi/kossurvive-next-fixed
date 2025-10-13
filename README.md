@@ -16,7 +16,7 @@ Implementasi cepat dari konsep di dokumen: feed resep ala FYP, olahraga kos + mo
    - `DIRECT_URL` untuk koneksi langsung (wajib mengarah ke port 5432 di Supabase) agar migrasi dan seed tidak melewati pooler.
    - `PRISMA_SEED_DATABASE_URL` (opsional) bila ingin memakai koneksi berbeda khusus untuk `prisma db seed`; bila kosong maka akan memakai `DIRECT_URL`.
 - `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY` dari proyek Supabase Anda.
-- `SUPABASE_SERVICE_ROLE_KEY` bila butuh akses admin (opsional).
+- `SUPABASE_SERVICE_ROLE_KEY` untuk operasi admin (wajib agar CRUD dan upload gambar berjalan).
 - `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET` (opsional) bila Anda ingin menentukan bucket publik default yang menyimpan aset gambar.
 - `NEXT_PUBLIC_SUPABASE_LOGO_PATH` (opsional) untuk menentukan path atau nama file logo pada bucket publik.
 
@@ -43,11 +43,13 @@ Implementasi cepat dari konsep di dokumen: feed resep ala FYP, olahraga kos + mo
 
 ## Modul Admin
 
-- Area admin dapat diakses melalui `/admin` dan hanya menerima login email/password Supabase Auth.
-- Pastikan akun admin memiliki `user_metadata.role = "admin"`; contoh kredensial uji coba: `admin@kossurvive.com` / `123456`.
-- Sesi admin disimpan di cookie server-side (`sb-admin-auth-token`) dan terpisah dari sesi user biasa.
-- Dashboard menyediakan CRUD untuk Resep, Workout, dan Materi Belajar, lengkap dengan unggah gambar ke Supabase Storage menggunakan `SUPABASE_SERVICE_ROLE_KEY`.
-- Tombol logout akan menghapus cookie admin dan mengarahkan kembali ke `/admin/login`.
+- Area admin hidup di route group `app/(admin)` dan tampil di URL `/admin/**` tanpa mengganggu struktur user (`app/(user)`).
+- Layout admin menampilkan topbar "KoSurvive Admin" dan tombol *Kembali ke situs utama* agar admin bisa melompat ke area publik kapan saja.
+- Halaman login `/admin/login` hanya menerima email + password Supabase Auth. Tidak ada opsi register atau OAuth. Gunakan akun dengan `user_metadata.role = "admin"` (contoh seed: `admin@kossurvive.com` / `123456`).
+- Sesi admin ditulis ke cookie server-side `sb-admin-auth-token`, terisolasi dari cookie user biasa. Middleware otomatis memblokir akses ke `/admin/**` jika cookie tersebut tidak valid.
+- Dashboard `/admin/dashboard` menyediakan tab untuk `Resep`, `Workout`, dan `Learning Resource`. Semua operasi CRUD dan upload gambar memanggil API Prisma di `/admin/api/{recipes|workouts|learning}` yang berjalan di Vercel Serverless Function.
+- Upload gambar menggunakan Supabase Storage bucket publik melalui helper `lib/supabase/admin.js` yang mengonsumsi `SUPABASE_SERVICE_ROLE_KEY`. Preview tautan akan otomatis muncul setelah unggah.
+- Logout dilakukan via `DELETE /admin/api/session` yang menghapus cookie admin dan mengarahkan kembali ke `/admin/login`.
 
 ## Instalasi Dependensi & Prisma
 ```bash

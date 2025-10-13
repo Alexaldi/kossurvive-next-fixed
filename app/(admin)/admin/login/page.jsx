@@ -52,21 +52,23 @@ export default async function AdminLoginPage() {
   return (
     <div className="flex flex-col items-center">
       <div className="mt-16 text-center">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">Admin Area</h2>
-        <p className="mt-3 text-3xl font-bold text-slate-100">Kelola Konten KoSurvive</p>
-        <p className="mt-2 max-w-md text-center text-sm text-slate-400">
-          Masuk untuk mengelola resep, workout, dan materi belajar yang tampil di aplikasi pengguna.
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-400">Secure Access</p>
+        <h1 className="mt-3 text-4xl font-bold text-slate-100">KoSurvive Admin</h1>
+        <p className="mt-3 text-sm text-slate-400">
+          Gunakan kredensial admin untuk mengelola konten aplikasi.
         </p>
       </div>
       <LoginForm action={authenticateAdmin} />
-      <div className="mt-10 max-w-xl rounded-lg border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-400">
+      <div className="mt-10 max-w-xl rounded-lg border border-slate-800 bg-slate-900/40 p-5 text-xs text-slate-400">
         <p className="font-semibold text-slate-300">Catatan deployment:</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>Isi environment NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, dan DATABASE_URL.</li>
-          <li>Tambahkan akun admin secara manual via Supabase Auth (contoh: admin@kossurvive.com / 123456).</li>
-          <li>Supabase menyimpan sesi admin di cookie server-side khusus sehingga terpisah dari login pengguna.</li>
+          <li>Tambahkan akun admin manual via Supabase Auth (contoh: admin@kossurvive.com / 123456).</li>
+          <li>Sesi admin disimpan di cookie server-side terpisah dari login pengguna.</li>
         </ul>
       </div>
     </div>
   )
 }
+
+export { authenticateAdmin as action }

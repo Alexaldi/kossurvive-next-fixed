@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-import DashboardShell from "../components/DashboardShell"
+import DashboardShell from "../../components/DashboardShell"
 import { listRecords } from "../api/_helpers"
 import { requireAdminUser } from "@/lib/supabase/server-admin"
 
@@ -17,7 +17,10 @@ export default async function AdminDashboardPage() {
     redirect("/admin/login")
   }
 
-  const records = await listRecords()
+  const records = await listRecords().catch((error) => {
+    console.error("Gagal memuat data awal dashboard:", error)
+    return { recipes: [], workouts: [], learningResources: [] }
+  })
 
   return <DashboardShell initialData={records} />
 }

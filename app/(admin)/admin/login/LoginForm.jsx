@@ -9,7 +9,10 @@ export default function LoginForm({ action }) {
   const { pending } = useFormStatus()
 
   return (
-    <form action={formAction} className="mx-auto mt-12 w-full max-w-md space-y-6 rounded-xl border border-slate-800 bg-slate-900/50 p-8 shadow-xl shadow-slate-950/40">
+    <form
+      action={formAction}
+      className="mx-auto mt-12 w-full max-w-md space-y-6 rounded-xl border border-[#1F2937] bg-[#0F172A]/80 p-8 shadow-xl shadow-black/40 backdrop-blur"
+    >
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Masuk Admin</h1>
         <p className="mt-1 text-sm text-slate-400">Gunakan email dan password admin yang sudah terdaftar.</p>
@@ -29,7 +32,7 @@ export default function LoginForm({ action }) {
           type="email"
           required
           autoComplete="email"
-          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-3 py-2 text-slate-100 outline-none transition focus:border-emerald-500 focus:ring-emerald-500"
+          className="w-full rounded-md border border-slate-700/80 bg-[#0B1220] px-3 py-2 text-slate-100 outline-none transition focus:border-[#10B981] focus:ring-[#10B981]"
           placeholder="admin@kossurvive.com"
         />
       </div>
@@ -44,14 +47,14 @@ export default function LoginForm({ action }) {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-3 py-2 text-slate-100 outline-none transition focus:border-emerald-500 focus:ring-emerald-500"
+          className="w-full rounded-md border border-slate-700/80 bg-[#0B1220] px-3 py-2 text-slate-100 outline-none transition focus:border-[#10B981] focus:ring-[#10B981]"
           placeholder="••••••"
         />
       </div>
 
       <button
         type="submit"
-        className="flex w-full items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+        className="flex w-full items-center justify-center rounded-md bg-[#10B981] px-4 py-2 text-sm font-semibold text-[#0B1220] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
         disabled={pending}
       >
         {pending ? "Memproses..." : "Masuk"}

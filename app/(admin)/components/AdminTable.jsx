@@ -1,8 +1,8 @@
 "use client"
 
-export default function DataTable({ columns, rows, onEdit, onDelete }) {
+export default function AdminTable({ columns, rows, onEdit, onDelete }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40">
+    <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-[#0B1220]/80">
       <table className="min-w-full divide-y divide-slate-800 text-sm">
         <thead className="bg-slate-900/70 text-left text-xs uppercase tracking-wider text-slate-400">
           <tr>
@@ -36,7 +36,7 @@ export default function DataTable({ columns, rows, onEdit, onDelete }) {
                         <button
                           type="button"
                           onClick={() => onEdit(row)}
-                          className="rounded-md border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-500/50 hover:text-emerald-200"
+                          className="rounded-md border border-slate-700/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-[#10B981] hover:text-[#10B981]"
                         >
                           Edit
                         </button>

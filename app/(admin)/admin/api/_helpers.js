@@ -1,14 +1,15 @@
 import { randomUUID } from "crypto"
 
 import prisma from "@/lib/prisma"
-import { getServiceRoleClient } from "@/lib/supabase/service"
+import { getAdminSupabaseClient } from "@/lib/supabase/admin"
 
 const DEFAULT_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || "public"
 
 const RESOURCE_CONFIG = {
   recipe: {
     model: prisma.recipe,
-    mapPayload(input, { isUpdate = false } = {}) {
+    hasImage: true,
+    mapPayload(input) {
       const base = {
         name: input.name?.trim() ?? "",
         estCost: Number.parseInt(input.estCost ?? "0", 10) || 0,
@@ -128,29 +129,49 @@ const RESOURCE_CONFIG = {
   },
 }
 
-export const parseResource = (value) => {
-  const raw = String(value ?? "").trim()
-  const alias = raw.toLowerCase()
-  const resource =
-    alias === "recipes"
-      ? "recipe"
-      : alias === "workouts"
-        ? "workout"
-        : alias === "learningresources" || alias === "learning_resource"
-          ? "learningResource"
-          : raw
+export const configFor = (resource) => RESOURCE_CONFIG[resource]
 
-  if (!resource || !RESOURCE_CONFIG[resource]) {
-    throw new Error("Resource tidak dikenal.")
+export const listRecords = async () => {
+  const [recipes, workouts, learningResources] = await Promise.all([
+    prisma.recipe.findMany({ orderBy: { updatedAt: "desc" } }),
+    prisma.workout.findMany({ orderBy: { updatedAt: "desc" } }),
+    prisma.learningResource.findMany({ orderBy: { updatedAt: "desc" } }),
+  ])
+
+  return {
+    recipes: recipes.map(RESOURCE_CONFIG.recipe.serialize),
+    workouts: workouts.map(RESOURCE_CONFIG.workout.serialize),
+    learningResources: learningResources.map(RESOURCE_CONFIG.learningResource.serialize),
+  }
+}
+
+export const listResource = async (resource) => {
+  const config = configFor(resource)
+  const records = await config.model.findMany({ orderBy: { updatedAt: "desc" } })
+  return records.map(config.serialize)
+}
+
+export const extractPayload = async (request) => {
+  const contentType = request.headers.get("content-type") || ""
+  if (contentType.includes("application/json")) {
+    const payload = await request.json()
+    return { payload, file: null }
   }
 
-  return resource
+  const formData = await request.formData()
+  const raw = formData.get("data")
+  const payload = raw ? JSON.parse(raw) : {}
+  const file = formData.get("image")
+  return {
+    payload,
+    file: file && typeof file === "object" && "arrayBuffer" in file ? file : null,
+  }
 }
 
 export const uploadImageToSupabase = async (file) => {
   if (!file) return null
 
-  const supabase = getServiceRoleClient()
+  const supabase = getAdminSupabaseClient()
 
   if (!supabase) {
     throw new Error("Service role Supabase belum dikonfigurasi.")
@@ -175,19 +196,56 @@ export const uploadImageToSupabase = async (file) => {
   return `${bucket}::${path}`
 }
 
-export const configFor = (resource) => RESOURCE_CONFIG[resource]
+export const createRecord = async (resource, payload, file) => {
+  const config = configFor(resource)
+  const data = { ...config.mapPayload(payload), id: payload.id?.trim?.() || randomUUID() }
 
-export const listRecords = async () => {
-  const [recipes, workouts, learningResources] = await Promise.all([
-    prisma.recipe.findMany({ orderBy: { updatedAt: "desc" } }),
-    prisma.workout.findMany({ orderBy: { updatedAt: "desc" } }),
-    prisma.learningResource.findMany({ orderBy: { updatedAt: "desc" } }),
-  ])
-
-  return {
-    recipes: recipes.map(RESOURCE_CONFIG.recipe.serialize),
-    workouts: workouts.map(RESOURCE_CONFIG.workout.serialize),
-    learningResources: learningResources.map(RESOURCE_CONFIG.learningResource.serialize),
+  if (config.hasImage) {
+    if (file) {
+      const imagePath = await uploadImageToSupabase(file)
+      if (imagePath) data.image = imagePath
+    } else if (payload.image) {
+      data.image = payload.image
+    }
   }
+
+  const created = await config.model.create({ data })
+  return config.serialize(created)
 }
 
+export const updateRecord = async (resource, payload, file) => {
+  const config = configFor(resource)
+  const id = String(payload.id ?? "").trim()
+
+  if (!id) {
+    throw new Error("ID tidak ditemukan untuk pembaruan.")
+  }
+
+  const data = { ...config.mapPayload(payload) }
+
+  if (config.hasImage) {
+    if (file) {
+      const imagePath = await uploadImageToSupabase(file)
+      if (imagePath) {
+        data.image = imagePath
+      }
+    } else if (payload.image) {
+      data.image = payload.image
+    }
+  }
+
+  const updated = await config.model.update({ where: { id }, data })
+  return config.serialize(updated)
+}
+
+export const deleteRecord = async (resource, id) => {
+  const config = configFor(resource)
+  const recordId = String(id ?? "").trim()
+
+  if (!recordId) {
+    throw new Error("ID tidak ditemukan untuk penghapusan.")
+  }
+
+  await config.model.delete({ where: { id: recordId } })
+  return { success: true }
+}

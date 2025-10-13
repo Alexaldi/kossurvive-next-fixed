@@ -2,13 +2,13 @@ import Link from "next/link"
 
 export default function AdminLayout({ children }) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/80 py-4">
+    <div className="flex min-h-screen flex-col bg-[#0F172A] text-slate-100">
+      <header className="border-b border-slate-800/70 bg-[#0F172A]/90 py-4 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6">
           <div className="text-lg font-semibold tracking-tight text-slate-100">KoSurvive Admin</div>
           <Link
             href="/"
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-200"
+            className="rounded-md border border-slate-700/70 px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:border-[#10B981] hover:text-[#10B981]"
           >
             Kembali ke situs utama
           </Link>
