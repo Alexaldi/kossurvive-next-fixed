@@ -1,4 +1,7 @@
+import { Suspense } from "react"
 import "./globals.css"
+import ClientNavbar from "@/components/ClientNavbar"
+import RouteLoaderProvider from "@/components/RouteLoader"
 
 export const metadata = {
   title: "KosSurvive",

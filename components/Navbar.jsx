@@ -279,9 +279,7 @@ export default function Navbar() {
         return null
     }
 
-    if (!userState.displayName) {
-        return null
-    }
+    const isAuthenticated = Boolean(userState.displayName || userState.email)
 
     return (
         <>
@@ -321,46 +319,68 @@ export default function Navbar() {
                     </div>
 
                     {/* Desktop User info & Logout */}
-                    <div
-                        ref={profileSectionRef}
-                        className="relative hidden flex-1 items-center justify-end lg:flex"
-                    >
-                        <button
-                            onClick={toggleDropdown}
-                            className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
-                            aria-haspopup="menu"
-                            aria-expanded={isDropdownOpen}
-                        >
-                            {userState.avatarUrl ? (
-                                <Image
-                                    src={userState.avatarUrl}
-                                    alt={userState.displayName}
-                                    width={36}
-                                    height={36}
-                                    className="h-9 w-9 rounded-full object-cover"
-                                />
-                            ) : displayInitial ? (
-                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
-                                    {displayInitial}
-                                </span>
-                            ) : null}
-                            <span className="font-medium">{userState.displayName}</span>
-                        </button>
-
-                        {isDropdownOpen && (
-                            <div
-                                role="menu"
-                                aria-orientation="vertical"
-                                className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
-                            >
+                    <div className="relative hidden flex-1 items-center justify-end lg:flex">
+                        {isAuthenticated ? (
+                            <div ref={profileSectionRef} className="relative">
                                 <button
-                                    onClick={requestLogout}
-                                    className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
-                                    role="menuitem"
+                                    onClick={toggleDropdown}
+                                    className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
+                                    aria-haspopup="menu"
+                                    aria-expanded={isDropdownOpen}
                                 >
-                                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                                    Keluar
+                                    {userState.avatarUrl ? (
+                                        <Image
+                                            src={userState.avatarUrl}
+                                            alt={userState.displayName ?? userState.email ?? "Profil"}
+                                            width={36}
+                                            height={36}
+                                            className="h-9 w-9 rounded-full object-cover"
+                                        />
+                                    ) : displayInitial ? (
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
+                                            {displayInitial}
+                                        </span>
+                                    ) : (
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-white">
+                                            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                        </span>
+                                    )}
+                                    <span className="font-medium">
+                                        {userState.displayName ?? userState.email}
+                                    </span>
                                 </button>
+
+                                {isDropdownOpen && (
+                                    <div
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
+                                    >
+                                        <button
+                                            onClick={requestLogout}
+                                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
+                                            role="menuitem"
+                                        >
+                                            <LogOut className="h-4 w-4" aria-hidden="true" />
+                                            Keluar
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href="/login"
+                                    className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                >
+                                    Masuk
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                                >
+                                    Daftar
+                                </Link>
                             </div>
                         )}
                     </div>
@@ -397,36 +417,62 @@ export default function Navbar() {
                             </nav>
 
                             <div className="rounded-2xl bg-slate-900/60 p-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        {userState.avatarUrl ? (
-                                            <Image
-                                                src={userState.avatarUrl}
-                                                alt={userState.displayName}
-                                                width={40}
-                                                height={40}
-                                                className="h-10 w-10 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
-                                                {displayInitial}
-                                            </span>
-                                        )}
-                                        <div>
-                                            <p className="text-sm font-semibold text-white">{userState.displayName}</p>
-                                            {userState.email && (
-                                                <p className="text-xs text-slate-400">{userState.email}</p>
+                                {isAuthenticated ? (
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            {userState.avatarUrl ? (
+                                                <Image
+                                                    src={userState.avatarUrl}
+                                                    alt={userState.displayName ?? userState.email ?? "Profil"}
+                                                    width={40}
+                                                    height={40}
+                                                    className="h-10 w-10 rounded-full object-cover"
+                                                />
+                                            ) : displayInitial ? (
+                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
+                                                    {displayInitial}
+                                                </span>
+                                            ) : (
+                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-base font-semibold text-white">
+                                                    <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                                                </span>
                                             )}
+                                            <div>
+                                                <p className="text-sm font-semibold text-white">
+                                                    {userState.displayName ?? userState.email}
+                                                </p>
+                                                {userState.email && (
+                                                    <p className="text-xs text-slate-400">{userState.email}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={requestLogout}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
+                                        >
+                                            <LogOut className="h-4 w-4" aria-hidden="true" />
+                                            Keluar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-3">
+                                        <p className="text-sm font-semibold text-white">Selamat datang di KoSurvive!</p>
+                                        <div className="grid gap-2">
+                                            <Link
+                                                href="/login"
+                                                className="inline-flex items-center justify-center rounded-xl border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                            >
+                                                Masuk
+                                            </Link>
+                                            <Link
+                                                href="/register"
+                                                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                                            >
+                                                Daftar
+                                            </Link>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={requestLogout}
-                                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
-                                    >
-                                        <LogOut className="h-4 w-4" aria-hidden="true" />
-                                        Keluar
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
