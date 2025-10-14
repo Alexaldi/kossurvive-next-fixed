@@ -13,6 +13,8 @@ import {
 
 import PageHero from "@/components/ui/PageHero";
 import { useAsyncLoader } from "@/components/RouteLoader";
+import { createClient } from "@/lib/supabase/client";
+import { FALLBACK_IMAGE_DATA_URL, resolveSupabaseImageUrl } from "@/lib/supabase/storage";
 
 function EmptyState({ icon: Icon, title, description, action }) {
   return (
@@ -35,6 +37,7 @@ function RecipeCollection({
   onToggleLike,
   onToggleSave,
   pendingAction,
+  supabase,
 }) {
   if (!items.length) {
     return empty;
@@ -49,6 +52,10 @@ function RecipeCollection({
       <div className="grid gap-6 lg:grid-cols-2">
         {items.map((item) => {
           const lastInteracted = item.lastInteracted ? new Date(item.lastInteracted) : null;
+          const imageSrc = resolveSupabaseImageUrl(item.image, {
+            supabase,
+            fallback: FALLBACK_IMAGE_DATA_URL,
+          });
 
           return (
             <article
@@ -57,9 +64,15 @@ function RecipeCollection({
             >
             <div className="relative aspect-[4/3] overflow-hidden">
               <img
-                src={item.image}
+                src={imageSrc}
                 alt={item.name}
                 className="h-full w-full object-cover"
+                loading="lazy"
+                onError={(event) => {
+                  if (event.currentTarget.src !== FALLBACK_IMAGE_DATA_URL) {
+                    event.currentTarget.src = FALLBACK_IMAGE_DATA_URL;
+                  }
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent" />
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -107,7 +120,7 @@ function RecipeCollection({
 
               <div className="flex flex-wrap gap-2 border-t border-slate-800/60 pt-4">
                 <button
-                  onClick={() => onToggleLike(item.id)}
+                  onClick={() => onToggleLike(item.id, item.liked)}
                   className={`btn transition ${
                     item.liked
                       ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
@@ -124,7 +137,7 @@ function RecipeCollection({
                   {item.liked ? "Disukai" : "Suka"}
                 </button>
                 <button
-                  onClick={() => onToggleSave(item.id)}
+                  onClick={() => onToggleSave(item.id, item.saved)}
                   className={`btn btn-primary transition ${
                     item.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
                   }`}
@@ -150,6 +163,7 @@ function RecipeCollection({
 
 export default function FavoriteRecipesPage() {
   const { track } = useAsyncLoader();
+  const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState({
     loading: true,
     liked: [],
@@ -183,12 +197,16 @@ export default function FavoriteRecipesPage() {
   }, [loadFavorites]);
 
   const toggle = useCallback(
-    async (recipeId, action) => {
-      setPendingAction(`${recipeId}:${action}`);
+    async (recipeId, action, currentState = false) => {
+      const isSaveAction = action === "save";
+      const method = isSaveAction && currentState ? "DELETE" : "POST";
+      const actionKey = `${recipeId}:${action}`;
+
+      setPendingAction(actionKey);
       try {
         const response = await track(() =>
           fetch(`/api/recommend/${action}`, {
-            method: "POST",
+            method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ recipeId }),
           })
@@ -202,7 +220,7 @@ export default function FavoriteRecipesPage() {
         console.error("Gagal memperbarui interaksi resep:", error);
         setState((prev) => ({ ...prev, error: error.message }));
       } finally {
-        setPendingAction(null);
+        setPendingAction((current) => (current === actionKey ? null : current));
       }
     },
     [loadFavorites, track]
@@ -283,9 +301,10 @@ export default function FavoriteRecipesPage() {
                 }
               />
             }
-            onToggleLike={(id) => toggle(id, "like")}
-            onToggleSave={(id) => toggle(id, "save")}
+            onToggleLike={(id, liked) => toggle(id, "like", liked)}
+            onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
+            supabase={supabase}
           />
 
           <RecipeCollection
@@ -307,9 +326,10 @@ export default function FavoriteRecipesPage() {
                 }
               />
             }
-            onToggleLike={(id) => toggle(id, "like")}
-            onToggleSave={(id) => toggle(id, "save")}
+            onToggleLike={(id, liked) => toggle(id, "like", liked)}
+            onToggleSave={(id, saved) => toggle(id, "save", saved)}
             pendingAction={pendingAction}
+            supabase={supabase}
           />
         </div>
       )}
