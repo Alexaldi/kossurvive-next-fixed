@@ -44,6 +44,7 @@ export default function Navbar() {
     }, [pathname])
     const [userState, setUserState] = useState({
         loading: true,
+        id: null,
         displayName: null,
         email: null,
         avatarUrl: null,
@@ -90,6 +91,7 @@ export default function Navbar() {
 
             setUserState({
                 loading: false,
+                id: user?.id ?? null,
                 displayName,
                 email: user?.email ?? null,
                 avatarUrl: avatarUrl || null,
@@ -99,6 +101,7 @@ export default function Navbar() {
         if (!supabase) {
             setUserState({
                 loading: false,
+                id: null,
                 displayName: null,
                 email: null,
                 avatarUrl: null,
@@ -107,13 +110,34 @@ export default function Navbar() {
         }
 
         const fetchUser = async () => {
-            const { data, error } = await supabase.auth.getUser()
-            if (error) {
-                console.error("Get user error:", error.message)
+            try {
+                const {
+                    data: sessionData,
+                    error: sessionError,
+                } = await supabase.auth.getSession()
+
+                if (sessionError) {
+                    console.error("Session fetch error:", sessionError.message)
+                }
+
+                if (sessionData?.session?.user) {
+                    resolveUser(sessionData.session.user)
+                    return
+                }
+
+                const { data: userData, error: userError } = await supabase.auth.getUser()
+
+                if (userError) {
+                    console.error("Get user error:", userError.message)
+                    resolveUser(null)
+                    return
+                }
+
+                resolveUser(userData?.user ?? null)
+            } catch (error) {
+                console.error("Unexpected Supabase auth error:", error)
                 resolveUser(null)
-                return
             }
-            resolveUser(data?.user ?? null)
         }
 
         fetchUser()
@@ -279,7 +303,7 @@ export default function Navbar() {
         return null
     }
 
-    const isAuthenticated = Boolean(userState.displayName || userState.email)
+    const isAuthenticated = Boolean(userState.id)
 
     return (
         <>
