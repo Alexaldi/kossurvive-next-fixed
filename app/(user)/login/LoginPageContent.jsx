@@ -33,14 +33,14 @@ export default function LoginPageContent() {
 
     if (!supabase) {
         const message = supabaseConfig.missingMessage
+        if (message) {
+            console.warn(message)
+        }
         return (
             <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-rose-200">
                 <div className="max-w-md space-y-2 rounded-2xl border border-rose-400/30 bg-rose-950/40 p-6 backdrop-blur">
-                    <p className="text-base font-semibold text-rose-100">Konfigurasi auth belum lengkap</p>
-                    <p>{message}</p>
-                    <p className="text-xs text-rose-300/80">
-                        Tambahkan NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY ke environment sebelum mencoba login.
-                    </p>
+                    <p className="text-base font-semibold text-rose-100">Sistem login sedang disiapkan</p>
+                    <p>Hubungi admin untuk mengaktifkan layanan autentikasi terlebih dahulu.</p>
                 </div>
             </div>
         )

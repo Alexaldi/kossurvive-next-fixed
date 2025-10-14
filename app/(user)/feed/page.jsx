@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
 import { useAsyncLoader } from "@/components/RouteLoader";
+import { createClient } from "@/lib/supabase/client";
+import { FALLBACK_IMAGE_DATA_URL, resolveSupabaseImageUrl } from "@/lib/supabase/storage";
 
 function useUser() {
   const { track } = useAsyncLoader();
@@ -45,9 +47,12 @@ function useUser() {
 
 export default function Feed() {
   const { track } = useAsyncLoader();
+  const supabase = useMemo(() => createClient(), []);
   const [user] = useUser();
   const [items, setItems] = useState([]);
   const [score, setScore] = useState({});
+  const [pendingAction, setPendingAction] = useState(null);
+  const [gallery, setGallery] = useState({ loading: true, items: [], error: null });
   const observer = useRef(null);
 
   const topCategories = useMemo(() => {
@@ -91,6 +96,111 @@ export default function Feed() {
   }, [track]);
 
   useEffect(() => {
+    if (!supabase) {
+      setGallery({
+        loading: false,
+        items: [],
+        error: "Kurasi visual belum aktif. Hubungi admin untuk melengkapi konfigurasi.",
+      });
+      return;
+    }
+
+    let ignore = false;
+
+    setGallery((prev) => ({ ...prev, loading: true, error: null }));
+
+    const loadGallery = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("public_recipe_gallery")
+          .select(
+            "id, title, description, image_url, imageUrl, path, storage_path, file_path, bucket, storage_bucket, price, category, created_at",
+          )
+          .order("created_at", { ascending: false })
+          .limit(6);
+
+        if (ignore) return;
+
+        if (error) {
+          throw error;
+        }
+
+        const hydrated = (data ?? []).map((item, index) => {
+          const descriptor =
+            item.image_url ??
+            item.imageUrl ??
+            item.path ??
+            item.storage_path ??
+            item.file_path ??
+            (item.bucket || item.storage_bucket
+              ? {
+                  bucket: item.bucket ?? item.storage_bucket,
+                  path:
+                    item.path ??
+                    item.storage_path ??
+                    item.file_path ??
+                    "",
+                }
+              : null);
+
+          const numericPrice =
+            typeof item.price === "number"
+              ? item.price
+              : typeof item.price === "string" &&
+                  item.price.trim() !== "" &&
+                  !Number.isNaN(Number(item.price))
+              ? Number(item.price)
+              : null;
+
+          const priceLabel =
+            numericPrice !== null
+              ? `≈ Rp${Math.round(numericPrice).toLocaleString("id-ID")}`
+              : typeof item.price === "string" && item.price.trim() !== ""
+              ? item.price
+              : null;
+
+          return {
+            id: item.id ?? `gallery-${index}`,
+            title: item.title ?? "Menu unggulan",
+            description: item.description ?? "",
+            category: item.category ?? "Menu",
+            priceLabel,
+            imageUrl: resolveSupabaseImageUrl(descriptor, {
+              supabase,
+              fallback: FALLBACK_IMAGE_DATA_URL,
+            }),
+          };
+        });
+
+        setGallery({
+          loading: false,
+          items: hydrated,
+          error:
+            hydrated.length === 0
+              ? "Belum ada galeri menu yang bisa ditampilkan. Tim admin akan segera menambahkan koleksi baru."
+              : null,
+        });
+      } catch (error) {
+        if (ignore) return;
+        console.warn("Gagal memuat galeri rekomendasi:", error);
+        setGallery({
+          loading: false,
+          items: [],
+          error:
+            error?.message ??
+            "Konten belum bisa dimuat. Silakan coba lagi beberapa saat lagi.",
+        });
+      }
+    };
+
+    loadGallery();
+
+    return () => {
+      ignore = true;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     observer.current = new IntersectionObserver(
       (entries) => {
         entries.forEach(async (e) => {
@@ -123,16 +233,26 @@ export default function Feed() {
   }, [items]);
 
   async function act(id, action) {
+    const target = items.find((recipe) => recipe.id === id);
+    const isSaveAction = action === "save";
+    const method = isSaveAction && target?.saved ? "DELETE" : "POST";
+    const actionKey = `${id}:${action}`;
+
+    setPendingAction(actionKey);
     await track(async () => {
-      const response = await fetch("/api/recommend/" + action, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: id }),
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.status !== "success") return;
-      setScore(payload.data?.score || {});
-      setItems(payload.data?.recipes || []);
+      try {
+        const response = await fetch("/api/recommend/" + action, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipeId: id }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.status !== "success") return;
+        setScore(payload.data?.score || {});
+        setItems(payload.data?.recipes || []);
+      } finally {
+        setPendingAction((current) => (current === actionKey ? null : current));
+      }
     });
   }
 
@@ -204,6 +324,76 @@ export default function Feed() {
         </div>
       </PageHero>
 
+      <section className="rounded-3xl border border-slate-800/70 bg-slate-950/60 p-6 shadow-inner shadow-slate-950/40">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-white">Galeri menu pilihan komunitas</h2>
+            <p className="text-sm text-slate-300">
+              Ini kumpulan resep yang lagi trending di KoSurvive. Setiap unggahan admin langsung muncul di sini supaya kamu bisa
+              mencicipi inspirasi terbaru tanpa menunggu update aplikasi.
+            </p>
+          </div>
+          <span className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+            Sinkron otomatis
+          </span>
+        </div>
+
+        {gallery.loading ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3).keys()].map((index) => (
+              <div
+                key={`gallery-skeleton-${index}`}
+                className="animate-pulse space-y-3 rounded-2xl border border-slate-800/60 bg-slate-900/60 p-4"
+              >
+                <div className="aspect-[4/3] w-full rounded-2xl bg-slate-800/60" />
+                <div className="h-4 w-3/4 rounded bg-slate-800/60" />
+                <div className="h-3 w-1/2 rounded bg-slate-800/60" />
+              </div>
+            ))}
+          </div>
+        ) : gallery.error ? (
+          <p className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+            {gallery.error}
+          </p>
+        ) : (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {gallery.items.map((item) => (
+              <article
+                key={item.id}
+                className="group overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/60 shadow-inner shadow-slate-950/40 transition hover:border-emerald-400/40"
+              >
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(event) => {
+                      if (event.currentTarget.src !== FALLBACK_IMAGE_DATA_URL) {
+                        event.currentTarget.src = FALLBACK_IMAGE_DATA_URL;
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs font-semibold text-slate-200">
+                    <span className="rounded-full bg-slate-950/80 px-3 py-1 uppercase tracking-[0.3em] text-emerald-200">
+                      {item.category}
+                    </span>
+                    {item.priceLabel && (
+                      <span className="rounded-full bg-slate-950/80 px-3 py-1 text-emerald-100">{item.priceLabel}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2 p-4">
+                  <h3 className="text-base font-semibold text-white">{item.title}</h3>
+                  {item.description && <p className="text-sm text-slate-300">{item.description}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section id="resep-harian" className="space-y-6 scroll-mt-28">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
@@ -225,6 +415,10 @@ export default function Feed() {
               (total, category) => total + (score?.[category] || 0),
               0
             );
+            const imageSrc = resolveSupabaseImageUrl(r.image, {
+              supabase,
+              fallback: FALLBACK_IMAGE_DATA_URL,
+            });
 
             return (
               <article
@@ -234,9 +428,15 @@ export default function Feed() {
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={r.image}
+                    src={imageSrc}
                     alt={r.name}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(event) => {
+                      if (event.currentTarget.src !== FALLBACK_IMAGE_DATA_URL) {
+                        event.currentTarget.src = FALLBACK_IMAGE_DATA_URL;
+                      }
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent" />
                   <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -313,6 +513,7 @@ export default function Feed() {
                             : "btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
                         }`}
                         aria-pressed={r.liked}
+                        disabled={pendingAction === `${r.id}:like`}
                       >
                         <Heart
                           className="h-4 w-4"
@@ -327,6 +528,7 @@ export default function Feed() {
                           r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
                         }`}
                         aria-pressed={r.saved}
+                        disabled={pendingAction === `${r.id}:save`}
                       >
                         <Bookmark
                           className="h-4 w-4"

@@ -74,13 +74,13 @@ export default function Onboarding() {
             <div>
               <dt className="font-semibold text-slate-100">Nama</dt>
               <dd className="mt-1 rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 text-slate-200">
-                {name || "Mengambil dari Supabase"}
+                {name || "Memuat data profil..."}
               </dd>
             </div>
             <div>
               <dt className="font-semibold text-slate-100">Email</dt>
               <dd className="mt-1 rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 text-slate-200">
-                {email || "Mengambil dari Supabase"}
+                {email || "Memuat email kamu..."}
               </dd>
             </div>
           </dl>

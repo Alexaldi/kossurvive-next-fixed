@@ -60,9 +60,19 @@ export async function GET() {
       }
     }
 
+    const dedupe = (collection) => {
+      const map = new Map()
+      for (const item of collection) {
+        if (!map.has(item.id)) {
+          map.set(item.id, item)
+        }
+      }
+      return Array.from(map.values())
+    }
+
     return successResponse("Favorit resep berhasil dimuat.", {
-      liked,
-      saved,
+      liked: dedupe(liked),
+      saved: dedupe(saved),
     })
   } catch (error) {
     console.error("Gagal memuat koleksi resep:", error)
