@@ -175,6 +175,13 @@ export default function Navbar() {
         setIsMobileMenuOpen(false)
     }, [pathname])
 
+    useEffect(() => {
+        if (!userState.loading && !userState.id) {
+            setIsDropdownOpen(false)
+            setIsMobileMenuOpen(false)
+        }
+    }, [userState.loading, userState.id])
+
     const toggleDropdown = () => {
         setIsDropdownOpen((previous) => !previous)
     }
@@ -248,21 +255,23 @@ export default function Navbar() {
                     </div>
 
                     {/* Navigation Links */}
-                    <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
-                        {navigationLinks.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`relative transition hover:text-white ${
-                                    pathname === item.href
-                                        ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
-                                        : "text-slate-300"
-                                }`}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
-                    </div>
+                    {isAuthenticated && (
+                        <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
+                            {navigationLinks.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`relative transition hover:text-white ${
+                                        pathname === item.href
+                                            ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
+                                            : "text-slate-300"
+                                    }`}
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Desktop User info & Logout */}
                     <div className="relative hidden flex-1 items-center justify-end lg:flex">
@@ -333,19 +342,36 @@ export default function Navbar() {
 
                     {/* Mobile menu trigger */}
                     <div className="flex items-center justify-end lg:hidden">
-                        <button
-                            type="button"
-                            onClick={toggleMobileMenu}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
-                            aria-label="Buka navigasi"
-                            aria-expanded={isMobileMenuOpen}
-                        >
-                            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                        </button>
+                        {isAuthenticated ? (
+                            <button
+                                type="button"
+                                onClick={toggleMobileMenu}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
+                                aria-label="Buka navigasi"
+                                aria-expanded={isMobileMenuOpen}
+                            >
+                                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                                <Link
+                                    href="/login"
+                                    className="rounded-full border border-slate-700/70 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                >
+                                    Masuk
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="rounded-full bg-emerald-500 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-950 transition hover:bg-emerald-400"
+                                >
+                                    Daftar
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </nav>
 
-                {isMobileMenuOpen && (
+                {isAuthenticated && isMobileMenuOpen && (
                     <div className="lg:hidden">
                         <div className="mt-4 space-y-6 rounded-2xl border border-slate-800/80 bg-slate-950/95 p-6 shadow-xl backdrop-blur">
                             <nav className="grid gap-3 text-sm font-medium text-slate-200">
@@ -363,62 +389,42 @@ export default function Navbar() {
                             </nav>
 
                             <div className="rounded-2xl bg-slate-900/60 p-4">
-                                {isAuthenticated ? (
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            {userState.avatarUrl ? (
-                                                <Image
-                                                    src={userState.avatarUrl}
-                                                    alt={userState.displayName ?? userState.email ?? "Profil"}
-                                                    width={40}
-                                                    height={40}
-                                                    className="h-10 w-10 rounded-full object-cover"
-                                                />
-                                            ) : displayInitial ? (
-                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
-                                                    {displayInitial}
-                                                </span>
-                                            ) : (
-                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-base font-semibold text-white">
-                                                    <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-                                                </span>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        {userState.avatarUrl ? (
+                                            <Image
+                                                src={userState.avatarUrl}
+                                                alt={userState.displayName ?? userState.email ?? "Profil"}
+                                                width={40}
+                                                height={40}
+                                                className="h-10 w-10 rounded-full object-cover"
+                                            />
+                                        ) : displayInitial ? (
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
+                                                {displayInitial}
+                                            </span>
+                                        ) : (
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-base font-semibold text-white">
+                                                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                                            </span>
+                                        )}
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">
+                                                {userState.displayName ?? userState.email}
+                                            </p>
+                                            {userState.email && (
+                                                <p className="text-xs text-slate-400">{userState.email}</p>
                                             )}
-                                            <div>
-                                                <p className="text-sm font-semibold text-white">
-                                                    {userState.displayName ?? userState.email}
-                                                </p>
-                                                {userState.email && (
-                                                    <p className="text-xs text-slate-400">{userState.email}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={requestLogout}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
-                                        >
-                                            <LogOut className="h-4 w-4" aria-hidden="true" />
-                                            Keluar
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="grid gap-3">
-                                        <p className="text-sm font-semibold text-white">Selamat datang di KoSurvive!</p>
-                                        <div className="grid gap-2">
-                                            <Link
-                                                href="/login"
-                                                className="inline-flex items-center justify-center rounded-xl border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
-                                            >
-                                                Masuk
-                                            </Link>
-                                            <Link
-                                                href="/register"
-                                                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-                                            >
-                                                Daftar
-                                            </Link>
                                         </div>
                                     </div>
-                                )}
+                                    <button
+                                        onClick={requestLogout}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
+                                    >
+                                        <LogOut className="h-4 w-4" aria-hidden="true" />
+                                        Keluar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
