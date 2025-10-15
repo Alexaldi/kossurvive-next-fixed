@@ -134,30 +134,30 @@ export default function Feed() {
             item.file_path ??
             (item.bucket || item.storage_bucket
               ? {
-                  bucket: item.bucket ?? item.storage_bucket,
-                  path:
-                    item.path ??
-                    item.storage_path ??
-                    item.file_path ??
-                    "",
-                }
+                bucket: item.bucket ?? item.storage_bucket,
+                path:
+                  item.path ??
+                  item.storage_path ??
+                  item.file_path ??
+                  "",
+              }
               : null);
 
           const numericPrice =
             typeof item.price === "number"
               ? item.price
               : typeof item.price === "string" &&
-                  item.price.trim() !== "" &&
-                  !Number.isNaN(Number(item.price))
-              ? Number(item.price)
-              : null;
+                item.price.trim() !== "" &&
+                !Number.isNaN(Number(item.price))
+                ? Number(item.price)
+                : null;
 
           const priceLabel =
             numericPrice !== null
               ? `≈ Rp${Math.round(numericPrice).toLocaleString("id-ID")}`
               : typeof item.price === "string" && item.price.trim() !== ""
-              ? item.price
-              : null;
+                ? item.price
+                : null;
 
           return {
             id: item.id ?? `gallery-${index}`,
@@ -507,11 +507,10 @@ export default function Feed() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => act(r.id, "like")}
-                        className={`btn transition ${
-                          r.liked
+                        className={`btn transition ${r.liked
                             ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
                             : "btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
-                        }`}
+                          }`}
                         aria-pressed={r.liked}
                         disabled={pendingAction === `${r.id}:like`}
                       >
@@ -524,9 +523,8 @@ export default function Feed() {
                       </button>
                       <button
                         onClick={() => act(r.id, "save")}
-                        className={`btn btn-primary transition ${
-                          r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
-                        }`}
+                        className={`btn btn-primary transition ${r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
+                          }`}
                         aria-pressed={r.saved}
                         disabled={pendingAction === `${r.id}:save`}
                       >

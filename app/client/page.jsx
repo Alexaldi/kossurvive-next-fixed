@@ -25,7 +25,8 @@ export default function ClientGalleryPage() {
       setState({
         loading: false,
         items: [],
-        error: "Kurasi rekomendasi belum tersedia. Coba lagi setelah konfigurasi disimpan.",
+        error:
+          "Supabase belum dikonfigurasi. Isi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY untuk menampilkan konten.",
       });
       return;
     }
@@ -58,9 +59,9 @@ export default function ClientGalleryPage() {
             item.file_path ??
             (item.bucket || item.storage_bucket
               ? {
-                bucket: item.bucket ?? item.storage_bucket,
-                path: item.path ?? item.storage_path ?? item.file_path ?? "",
-              }
+                  bucket: item.bucket ?? item.storage_bucket,
+                  path: item.path ?? item.storage_path ?? item.file_path ?? "",
+                }
               : null);
 
           return {
@@ -68,7 +69,7 @@ export default function ClientGalleryPage() {
             title: item.title ?? "Menu harian",
             description:
               item.description ??
-              "Menu pilihan tim KoSurvive buat nemenin minggu kamu. Nikmati rasa terbaik tanpa keluar dari budget.",
+              "Konten otomatis ditarik dari Supabase Storage sehingga selalu mengikuti data terbaru dari aplikasi admin.",
             category: item.category ?? "Menu",
             price:
               typeof item.price === "number"
@@ -85,13 +86,13 @@ export default function ClientGalleryPage() {
       } catch (error) {
         if (ignore) return;
 
-        console.warn("Gagal memuat rekomendasi mingguan:", error);
+        console.warn("Gagal memuat galeri Supabase:", error);
         setState({
           loading: false,
           items: [],
           error:
             error?.message ??
-            "Konten rekomendasi belum bisa dimuat. Silakan coba lagi beberapa saat lagi.",
+            "Tidak bisa mengambil data dari Supabase. Pastikan tabel public_recipe_gallery tersedia dan akses storage publik sudah diizinkan.",
         });
       }
     };
@@ -107,26 +108,28 @@ export default function ClientGalleryPage() {
     <div className="space-y-10">
       <header className="space-y-3 rounded-3xl border border-slate-800/70 bg-slate-950/60 p-8 shadow-xl">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">
-          Rekomendasi Mingguan
+          Galeri Supabase
         </p>
-        <h1 className="text-3xl font-bold text-white">Resep pilihan minggu ini</h1>
+        <h1 className="text-3xl font-bold text-white">
+          Semua gambar di halaman ini berasal dari Supabase Storage publik
+        </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-slate-300">
-          Kami kurasi menu hemat dan bergizi yang lagi hits di komunitas KoSurvive. Tinggal pilih yang cocok, masak, dan tandai
-          favoritmu supaya muncul di dashboard.
+          Admin cukup mengunggah aset melalui aplikasi admin. Repository user ini otomatis membaca data yang sama tanpa perlu
+          sinkronisasi manual folder <code>/public</code>.
         </p>
         <div className="flex flex-wrap gap-3 text-sm text-slate-300">
           <Link href="/feed" className="btn btn-primary">
-            Jelajahi semua menu
+            Lihat rekomendasi resep
           </Link>
           <Link href="/favorit" className="btn btn-outline border-emerald-400/40 text-slate-100">
-            Lihat favoritku
+            Kelola favorit
           </Link>
         </div>
       </header>
 
       {state.loading ? (
         <div className="rounded-3xl border border-slate-800/60 bg-slate-950/50 p-12 text-center text-slate-300">
-          Memuat rekomendasi terbaik untukmu...
+          Memuat konten dari Supabase...
         </div>
       ) : state.error ? (
         <div className="rounded-3xl border border-rose-500/40 bg-rose-500/10 p-6 text-center text-rose-100">
@@ -134,7 +137,7 @@ export default function ClientGalleryPage() {
         </div>
       ) : state.items.length === 0 ? (
         <div className="rounded-3xl border border-slate-800/60 bg-slate-950/50 p-12 text-center text-slate-300">
-          Belum ada rekomendasi terbaru. Tim admin sedang menyiapkan kurasi selanjutnya!
+          Belum ada data di tabel <code>public_recipe_gallery</code>. Unggah gambar lewat aplikasi admin untuk menampilkannya di sini.
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
