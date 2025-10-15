@@ -59,9 +59,9 @@ export default function ClientGalleryPage() {
             item.file_path ??
             (item.bucket || item.storage_bucket
               ? {
-                bucket: item.bucket ?? item.storage_bucket,
-                path: item.path ?? item.storage_path ?? item.file_path ?? "",
-              }
+                  bucket: item.bucket ?? item.storage_bucket,
+                  path: item.path ?? item.storage_path ?? item.file_path ?? "",
+                }
               : null);
 
           return {
