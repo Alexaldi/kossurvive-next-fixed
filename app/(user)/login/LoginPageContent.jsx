@@ -33,14 +33,14 @@ export default function LoginPageContent() {
 
     if (!supabase) {
         const message = supabaseConfig.missingMessage
+        if (message) {
+            console.warn(message)
+        }
         return (
             <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-rose-200">
                 <div className="max-w-md space-y-2 rounded-2xl border border-rose-400/30 bg-rose-950/40 p-6 backdrop-blur">
-                    <p className="text-base font-semibold text-rose-100">Konfigurasi auth belum lengkap</p>
-                    <p>{message}</p>
-                    <p className="text-xs text-rose-300/80">
-                        Tambahkan NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY ke environment sebelum mencoba login.
-                    </p>
+                    <p className="text-base font-semibold text-rose-100">Sistem login sedang disiapkan</p>
+                    <p>Hubungi admin untuk mengaktifkan layanan autentikasi terlebih dahulu.</p>
                 </div>
             </div>
         )
@@ -54,6 +54,43 @@ export default function LoginPageContent() {
         return `${url.pathname}${url.search}`
     }
 
+    const persistSession = async (session) => {
+        if (!session?.access_token || !session?.refresh_token) {
+            setError("Sesi Supabase tidak valid.")
+            return false
+        }
+
+        const callbackUrl = new URL("/auth/callback", window.location.origin)
+        if (nextParam && nextParam !== "/home") {
+            callbackUrl.searchParams.set("next", nextParam)
+        }
+
+        try {
+            const response = await fetch(callbackUrl.toString(), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                }),
+            })
+
+            const payload = await response.json().catch(() => ({ success: false }))
+
+            if (!response.ok || !payload?.success) {
+                setError(payload?.message ?? "Tidak dapat menyimpan sesi login.")
+                return false
+            }
+
+            return true
+        } catch (err) {
+            console.error("Persist session error", err)
+            setError("Tidak dapat menyimpan sesi login. Periksa koneksi Anda.")
+            return false
+        }
+    }
+
     const handleLogin = async (e) => {
         e.preventDefault()
         setLoading(true)
@@ -61,7 +98,8 @@ export default function LoginPageContent() {
         setError("")
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password })
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
             if (error) {
                 setError(error.message)
                 hideLoader()
@@ -69,7 +107,27 @@ export default function LoginPageContent() {
                 return
             }
 
-            router.replace(buildCallbackUrl())
+            const session = data?.session
+
+            if (!session) {
+                setError("Sesi Supabase tidak ditemukan.")
+                hideLoader()
+                setLoading(false)
+                return
+            }
+
+            const persisted = await persistSession(session)
+
+            if (!persisted) {
+                hideLoader()
+                setLoading(false)
+                return
+            }
+
+            hideLoader()
+            setLoading(false)
+            router.replace(nextParam)
+            router.refresh()
         } catch (err) {
             console.error(err)
             setError("Terjadi kesalahan tak terduga. Coba lagi.")

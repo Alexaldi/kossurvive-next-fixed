@@ -17,12 +17,20 @@ export default function LogoutButton({ className = "" }) {
 
         setIsProcessing(true)
         const { error } = await supabase.auth.signOut()
-        setIsProcessing(false)
 
         if (error) {
             console.error("Logout error:", error.message)
+            setIsProcessing(false)
             return
         }
+
+        try {
+            await fetch("/auth/signout", { method: "POST", credentials: "include" })
+        } catch (signoutError) {
+            console.error("Gagal membersihkan sesi server:", signoutError)
+        }
+
+        setIsProcessing(false)
 
         window.location.href = "/login"
     }

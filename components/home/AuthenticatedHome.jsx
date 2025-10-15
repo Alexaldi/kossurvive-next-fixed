@@ -1,5 +1,6 @@
 import ChatBot from "@/components/ChatBot"
 import EntryPreview from "@/components/home/EntryPreview"
+import LogoutButton from "@/components/LogoutButton"
 import Link from "next/link"
 import {
     AlarmClockCheck,
@@ -143,6 +144,7 @@ export default function AuthenticatedHome() {
                         >
                             Buka meal plan
                         </Link>
+                        <LogoutButton className="btn border border-red-500/40 !bg-red-500/10 !text-red-200 hover:!bg-red-500/20 hover:!text-red-50" />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3">
                         {microWins.map(({ label, value, hint, icon: Icon, accent }) => (

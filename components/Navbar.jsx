@@ -17,9 +17,8 @@ const navigationLinks = [
     { href: "/belajar", label: "Belajar" },
     { href: "/kalender", label: "Kalender" },
     { href: "/onboarding", label: "Pilih Makanan" },
+    { href: "/client", label: "Resep Mingguan" },
 ]
-
-const hiddenRoutes = ["/login", "/register", "/auth/callback"]
 
 export default function Navbar() {
     const isSupabaseConfigured = Boolean(
@@ -36,10 +35,13 @@ export default function Navbar() {
 
         if (AUTH_EXCLUDED_PATHS.includes(pathname)) return true
 
+        if (pathname.startsWith("/admin")) return true
+
         return pathname === "/auth" || pathname.startsWith("/auth/")
     }, [pathname])
     const [userState, setUserState] = useState({
         loading: true,
+        id: null,
         displayName: null,
         email: null,
         avatarUrl: null,
@@ -50,6 +52,7 @@ export default function Navbar() {
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [feedback, setFeedback] = useState(null)
     const profileSectionRef = useRef(null)
+    const logoSrc = "/Logo.png"
 
     const displayInitial = useMemo(() => {
         const source = userState.displayName ?? userState.email ?? ""
@@ -80,6 +83,7 @@ export default function Navbar() {
 
             setUserState({
                 loading: false,
+                id: user?.id ?? null,
                 displayName,
                 email: user?.email ?? null,
                 avatarUrl: avatarUrl || null,
@@ -89,6 +93,7 @@ export default function Navbar() {
         if (!supabase) {
             setUserState({
                 loading: false,
+                id: null,
                 displayName: null,
                 email: null,
                 avatarUrl: null,
@@ -97,13 +102,34 @@ export default function Navbar() {
         }
 
         const fetchUser = async () => {
-            const { data, error } = await supabase.auth.getUser()
-            if (error) {
-                console.error("Get user error:", error.message)
+            try {
+                const {
+                    data: sessionData,
+                    error: sessionError,
+                } = await supabase.auth.getSession()
+
+                if (sessionError) {
+                    console.error("Session fetch error:", sessionError.message)
+                }
+
+                if (sessionData?.session?.user) {
+                    resolveUser(sessionData.session.user)
+                    return
+                }
+
+                const { data: userData, error: userError } = await supabase.auth.getUser()
+
+                if (userError) {
+                    console.error("Get user error:", userError.message)
+                    resolveUser(null)
+                    return
+                }
+
+                resolveUser(userData?.user ?? null)
+            } catch (error) {
+                console.error("Unexpected Supabase auth error:", error)
                 resolveUser(null)
-                return
             }
-            resolveUser(data?.user ?? null)
         }
 
         fetchUser()
@@ -149,6 +175,13 @@ export default function Navbar() {
         setIsMobileMenuOpen(false)
     }, [pathname])
 
+    useEffect(() => {
+        if (!userState.loading && !userState.id) {
+            setIsDropdownOpen(false)
+            setIsMobileMenuOpen(false)
+        }
+    }, [userState.loading, userState.id])
+
     const toggleDropdown = () => {
         setIsDropdownOpen((previous) => !previous)
     }
@@ -175,7 +208,6 @@ export default function Navbar() {
 
         setIsLoggingOut(true)
         const { error } = await supabase.auth.signOut()
-        setIsLoggingOut(false)
 
         if (error) {
             console.error("Logout error:", error.message)
@@ -183,8 +215,17 @@ export default function Navbar() {
                 type: "error",
                 message: "Gagal logout. Coba lagi ya!",
             })
+            setIsLoggingOut(false)
             return
         }
+
+        try {
+            await fetch("/auth/signout", { method: "POST", credentials: "include" })
+        } catch (signoutError) {
+            console.error("Gagal membersihkan sesi server:", signoutError)
+        }
+
+        setIsLoggingOut(false)
 
         setIsConfirmOpen(false)
         setIsMobileMenuOpen(false)
@@ -200,9 +241,7 @@ export default function Navbar() {
         return null
     }
 
-    if (!userState.displayName) {
-        return null
-    }
+    const isAuthenticated = Boolean(userState.id)
 
     return (
         <>
@@ -211,9 +250,9 @@ export default function Navbar() {
                 <nav className="flex h-20 items-center justify-between gap-6">
                     {/* Logo */}
                     <div className="flex flex-1 items-center gap-4">
-                        <Link href="/home" className="flex items-center gap-3">
+                        <Link href="/" className="flex items-center gap-3">
                             <Image
-                                src="/Logo.png"
+                                src={logoSrc}
                                 alt="KoSurvive Logo"
                                 width={120}
                                 height={48}
@@ -224,82 +263,123 @@ export default function Navbar() {
                     </div>
 
                     {/* Navigation Links */}
-                    <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
-                        {navigationLinks.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`relative transition hover:text-white ${
-                                    pathname === item.href
-                                        ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
-                                        : "text-slate-300"
-                                }`}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
-                    </div>
+                    {isAuthenticated && (
+                        <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
+                            {navigationLinks.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`relative transition hover:text-white ${
+                                        pathname === item.href
+                                            ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
+                                            : "text-slate-300"
+                                    }`}
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Desktop User info & Logout */}
-                    <div
-                        ref={profileSectionRef}
-                        className="relative hidden flex-1 items-center justify-end lg:flex"
-                    >
-                        <button
-                            onClick={toggleDropdown}
-                            className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
-                            aria-haspopup="menu"
-                            aria-expanded={isDropdownOpen}
-                        >
-                            {userState.avatarUrl ? (
-                                <Image
-                                    src={userState.avatarUrl}
-                                    alt={userState.displayName}
-                                    width={36}
-                                    height={36}
-                                    className="h-9 w-9 rounded-full object-cover"
-                                />
-                            ) : displayInitial ? (
-                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
-                                    {displayInitial}
-                                </span>
-                            ) : null}
-                            <span className="font-medium">{userState.displayName}</span>
-                        </button>
-
-                        {isDropdownOpen && (
-                            <div
-                                role="menu"
-                                aria-orientation="vertical"
-                                className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
-                            >
+                    <div className="relative hidden flex-1 items-center justify-end lg:flex">
+                        {isAuthenticated ? (
+                            <div ref={profileSectionRef} className="relative">
                                 <button
-                                    onClick={requestLogout}
-                                    className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
-                                    role="menuitem"
+                                    onClick={toggleDropdown}
+                                    className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
+                                    aria-haspopup="menu"
+                                    aria-expanded={isDropdownOpen}
                                 >
-                                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                                    Keluar
+                                    {userState.avatarUrl ? (
+                                        <Image
+                                            src={userState.avatarUrl}
+                                            alt={userState.displayName ?? userState.email ?? "Profil"}
+                                            width={36}
+                                            height={36}
+                                            className="h-9 w-9 rounded-full object-cover"
+                                        />
+                                    ) : displayInitial ? (
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
+                                            {displayInitial}
+                                        </span>
+                                    ) : (
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-white">
+                                            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                        </span>
+                                    )}
+                                    <span className="font-medium">
+                                        {userState.displayName ?? userState.email}
+                                    </span>
                                 </button>
+
+                                {isDropdownOpen && (
+                                    <div
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
+                                    >
+                                        <button
+                                            onClick={requestLogout}
+                                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
+                                            role="menuitem"
+                                        >
+                                            <LogOut className="h-4 w-4" aria-hidden="true" />
+                                            Keluar
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href="/login"
+                                    className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                >
+                                    Masuk
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                                >
+                                    Daftar
+                                </Link>
                             </div>
                         )}
                     </div>
 
                     {/* Mobile menu trigger */}
                     <div className="flex items-center justify-end lg:hidden">
-                        <button
-                            type="button"
-                            onClick={toggleMobileMenu}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
-                            aria-label="Buka navigasi"
-                            aria-expanded={isMobileMenuOpen}
-                        >
-                            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                        </button>
+                        {isAuthenticated ? (
+                            <button
+                                type="button"
+                                onClick={toggleMobileMenu}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
+                                aria-label="Buka navigasi"
+                                aria-expanded={isMobileMenuOpen}
+                            >
+                                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                                <Link
+                                    href="/login"
+                                    className="rounded-full border border-slate-700/70 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                >
+                                    Masuk
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="rounded-full bg-emerald-500 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-950 transition hover:bg-emerald-400"
+                                >
+                                    Daftar
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </nav>
 
-                {isMobileMenuOpen && (
+                {isAuthenticated && isMobileMenuOpen && (
                     <div className="lg:hidden">
                         <div className="mt-4 space-y-6 rounded-2xl border border-slate-800/80 bg-slate-950/95 p-6 shadow-xl backdrop-blur">
                             <nav className="grid gap-3 text-sm font-medium text-slate-200">
@@ -322,18 +402,24 @@ export default function Navbar() {
                                         {userState.avatarUrl ? (
                                             <Image
                                                 src={userState.avatarUrl}
-                                                alt={userState.displayName}
+                                                alt={userState.displayName ?? userState.email ?? "Profil"}
                                                 width={40}
                                                 height={40}
                                                 className="h-10 w-10 rounded-full object-cover"
                                             />
-                                        ) : (
+                                        ) : displayInitial ? (
                                             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-white">
                                                 {displayInitial}
                                             </span>
+                                        ) : (
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-base font-semibold text-white">
+                                                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                                            </span>
                                         )}
                                         <div>
-                                            <p className="text-sm font-semibold text-white">{userState.displayName}</p>
+                                            <p className="text-sm font-semibold text-white">
+                                                {userState.displayName ?? userState.email}
+                                            </p>
                                             {userState.email && (
                                                 <p className="text-xs text-slate-400">{userState.email}</p>
                                             )}
