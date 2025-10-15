@@ -18,12 +18,8 @@ const navigationLinks = [
     { href: "/belajar", label: "Belajar" },
     { href: "/kalender", label: "Kalender" },
     { href: "/onboarding", label: "Pilih Makanan" },
-    { href: "/client", label: "Galeri Supabase" },
+    { href: "/client", label: "Resep Mingguan" },
 ]
-
-const hiddenRoutes = ["/login", "/register", "/auth/callback"]
-
-const LOGO_STORAGE_DESCRIPTOR = process.env.NEXT_PUBLIC_SUPABASE_LOGO_PATH ?? null
 
 export default function Navbar() {
     const isSupabaseConfigured = Boolean(
@@ -40,6 +36,8 @@ export default function Navbar() {
 
         if (AUTH_EXCLUDED_PATHS.includes(pathname)) return true
 
+        if (pathname.startsWith("/admin")) return true
+
         return pathname === "/auth" || pathname.startsWith("/auth/")
     }, [pathname])
     const [userState, setUserState] = useState({
@@ -55,12 +53,7 @@ export default function Navbar() {
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [feedback, setFeedback] = useState(null)
     const profileSectionRef = useRef(null)
-    const [logoSrc, setLogoSrc] = useState(() =>
-        resolveSupabaseImageUrl(LOGO_STORAGE_DESCRIPTOR, {
-            supabase,
-            fallback: FALLBACK_IMAGE_DATA_URL,
-        }),
-    )
+    const logoSrc = "/Logo.png"
 
     const displayInitial = useMemo(() => {
         const source = userState.displayName ?? userState.email ?? ""
@@ -181,16 +174,16 @@ export default function Navbar() {
 
                 const descriptor = data
                     ? data.image_url ??
-                      data.path ??
-                      data.storage_path ??
-                      data.file_path ?? {
-                          bucket: data.bucket ?? data.storage_bucket ?? null,
-                          path:
-                              data.path ??
-                              data.storage_path ??
-                              data.file_path ??
-                              null,
-                      }
+                    data.path ??
+                    data.storage_path ??
+                    data.file_path ?? {
+                        bucket: data.bucket ?? data.storage_bucket ?? null,
+                        path:
+                            data.path ??
+                            data.storage_path ??
+                            data.file_path ??
+                            null,
+                    }
                     : LOGO_STORAGE_DESCRIPTOR
 
                 setLogoSrc(
@@ -252,6 +245,13 @@ export default function Navbar() {
         setIsMobileMenuOpen(false)
     }, [pathname])
 
+    useEffect(() => {
+        if (!userState.loading && !userState.id) {
+            setIsDropdownOpen(false)
+            setIsMobileMenuOpen(false)
+        }
+    }, [userState.loading, userState.id])
+
     const toggleDropdown = () => {
         setIsDropdownOpen((previous) => !previous)
     }
@@ -308,140 +308,156 @@ export default function Navbar() {
     return (
         <>
             <header className="navbar border-b border-slate-800/70 bg-transparent">
-            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <nav className="flex h-20 items-center justify-between gap-6">
-                    {/* Logo */}
-                    <div className="flex flex-1 items-center gap-4">
-                        <Link href="/home" className="flex items-center gap-3">
-                            <Image
-                                src={logoSrc}
-                                alt="KoSurvive Logo"
-                                width={120}
-                                height={48}
-                                className="h-12 w-auto"
-                                priority
-                                onError={() => setLogoSrc(FALLBACK_IMAGE_DATA_URL)}
-                            />
-                        </Link>
-                    </div>
-
-                    {/* Navigation Links */}
-                    <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
-                        {navigationLinks.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`relative transition hover:text-white ${
-                                    pathname === item.href
-                                        ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
-                                        : "text-slate-300"
-                                }`}
-                            >
-                                {item.label}
+                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <nav className="flex h-20 items-center justify-between gap-6">
+                        {/* Logo */}
+                        <div className="flex flex-1 items-center gap-4">
+                            <Link href="/" className="flex items-center gap-3">
+                                <Image
+                                    src={logoSrc}
+                                    alt="KoSurvive Logo"
+                                    width={120}
+                                    height={48}
+                                    className="h-12 w-auto"
+                                    priority
+                                    onError={() => setLogoSrc(FALLBACK_IMAGE_DATA_URL)}
+                                />
                             </Link>
-                        ))}
-                    </div>
+                        </div>
 
-                    {/* Desktop User info & Logout */}
-                    <div className="relative hidden flex-1 items-center justify-end lg:flex">
-                        {isAuthenticated ? (
-                            <div ref={profileSectionRef} className="relative">
-                                <button
-                                    onClick={toggleDropdown}
-                                    className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
-                                    aria-haspopup="menu"
-                                    aria-expanded={isDropdownOpen}
-                                >
-                                    {userState.avatarUrl ? (
-                                        <Image
-                                            src={userState.avatarUrl}
-                                            alt={userState.displayName ?? userState.email ?? "Profil"}
-                                            width={36}
-                                            height={36}
-                                            className="h-9 w-9 rounded-full object-cover"
-                                        />
-                                    ) : displayInitial ? (
-                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
-                                            {displayInitial}
-                                        </span>
-                                    ) : (
-                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-white">
-                                            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                                        </span>
-                                    )}
-                                    <span className="font-medium">
-                                        {userState.displayName ?? userState.email}
-                                    </span>
-                                </button>
-
-                                {isDropdownOpen && (
-                                    <div
-                                        role="menu"
-                                        aria-orientation="vertical"
-                                        className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
-                                    >
-                                        <button
-                                            onClick={requestLogout}
-                                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
-                                            role="menuitem"
-                                        >
-                                            <LogOut className="h-4 w-4" aria-hidden="true" />
-                                            Keluar
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <Link
-                                    href="/login"
-                                    className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
-                                >
-                                    Masuk
-                                </Link>
-                                <Link
-                                    href="/register"
-                                    className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-                                >
-                                    Daftar
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Mobile menu trigger */}
-                    <div className="flex items-center justify-end lg:hidden">
-                        <button
-                            type="button"
-                            onClick={toggleMobileMenu}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
-                            aria-label="Buka navigasi"
-                            aria-expanded={isMobileMenuOpen}
-                        >
-                            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                        </button>
-                    </div>
-                </nav>
-
-                {isMobileMenuOpen && (
-                    <div className="lg:hidden">
-                        <div className="mt-4 space-y-6 rounded-2xl border border-slate-800/80 bg-slate-950/95 p-6 shadow-xl backdrop-blur">
-                            <nav className="grid gap-3 text-sm font-medium text-slate-200">
+                        {/* Navigation Links */}
+                        {isAuthenticated && (
+                            <div className="hidden flex-1 items-center justify-center gap-8 text-sm font-medium text-slate-200 lg:flex">
                                 {navigationLinks.map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`rounded-xl px-4 py-2 transition hover:bg-slate-900 ${
-                                            pathname === item.href ? "bg-slate-900 text-white" : ""
-                                        }`}
+                                        className={`relative transition hover:text-white ${pathname === item.href
+                                            ? "text-white after:absolute after:-bottom-2 after:left-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-emerald-400"
+                                            : "text-slate-300"
+                                            }`}
                                     >
                                         {item.label}
                                     </Link>
                                 ))}
-                            </nav>
+                            </div>
+                        )}
 
-                            <div className="rounded-2xl bg-slate-900/60 p-4">
-                                {isAuthenticated ? (
+                        {/* Desktop User info & Logout */}
+                        <div className="relative hidden flex-1 items-center justify-end lg:flex">
+                            {isAuthenticated ? (
+                                <div ref={profileSectionRef} className="relative">
+                                    <button
+                                        onClick={toggleDropdown}
+                                        className="flex items-center gap-3 rounded-full bg-slate-900/80 px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-slate-800/80"
+                                        aria-haspopup="menu"
+                                        aria-expanded={isDropdownOpen}
+                                    >
+                                        {userState.avatarUrl ? (
+                                            <Image
+                                                src={userState.avatarUrl}
+                                                alt={userState.displayName ?? userState.email ?? "Profil"}
+                                                width={36}
+                                                height={36}
+                                                className="h-9 w-9 rounded-full object-cover"
+                                            />
+                                        ) : displayInitial ? (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
+                                                {displayInitial}
+                                            </span>
+                                        ) : (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-white">
+                                                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                            </span>
+                                        )}
+                                        <span className="font-medium">
+                                            {userState.displayName ?? userState.email}
+                                        </span>
+                                    </button>
+
+                                    {isDropdownOpen && (
+                                        <div
+                                            role="menu"
+                                            aria-orientation="vertical"
+                                            className="absolute right-0 top-full mt-3 w-48 overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/95 shadow-xl backdrop-blur"
+                                        >
+                                            <button
+                                                onClick={requestLogout}
+                                                className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-600/10 hover:text-red-100"
+                                                role="menuitem"
+                                            >
+                                                <LogOut className="h-4 w-4" aria-hidden="true" />
+                                                Keluar
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <Link
+                                        href="/login"
+                                        className="rounded-full border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                    >
+                                        Masuk
+                                    </Link>
+                                    <Link
+                                        href="/register"
+                                        className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                                    >
+                                        Daftar
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mobile menu trigger */}
+                        <div className="flex items-center justify-end lg:hidden">
+                            {isAuthenticated ? (
+                                <button
+                                    type="button"
+                                    onClick={toggleMobileMenu}
+                                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/70 bg-slate-900/60 text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
+                                    aria-label="Buka navigasi"
+                                    aria-expanded={isMobileMenuOpen}
+                                >
+                                    {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                                    <Link
+                                        href="/login"
+                                        className="rounded-full border border-slate-700/70 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                    >
+                                        Masuk
+                                    </Link>
+                                    <Link
+                                        href="/register"
+                                        className="rounded-full bg-emerald-500 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-950 transition hover:bg-emerald-400"
+                                    >
+                                        Daftar
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </nav>
+
+                    {isAuthenticated && isMobileMenuOpen && (
+                        <div className="lg:hidden">
+                            <div className="mt-4 space-y-6 rounded-2xl border border-slate-800/80 bg-slate-950/95 p-6 shadow-xl backdrop-blur">
+                                <nav className="grid gap-3 text-sm font-medium text-slate-200">
+                                    {navigationLinks.map((item) => (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className={`rounded-xl px-4 py-2 transition hover:bg-slate-900 ${pathname === item.href ? "bg-slate-900 text-white" : ""
+                                                }`}
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    ))}
+                                </nav>
+
+                                <div className="rounded-2xl bg-slate-900/60 p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-3">
                                             {userState.avatarUrl ? (
@@ -468,39 +484,47 @@ export default function Navbar() {
                                                 {userState.email && (
                                                     <p className="text-xs text-slate-400">{userState.email}</p>
                                                 )}
+                                                <div>
+                                                    <p className="text-sm font-semibold text-white">
+                                                        {userState.displayName ?? userState.email}
+                                                    </p>
+                                                    {userState.email && (
+                                                        <p className="text-xs text-slate-400">{userState.email}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={requestLogout}
+                                                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
+                                            >
+                                                <LogOut className="h-4 w-4" aria-hidden="true" />
+                                                Keluar
+                                            </button>
+                                        </div>
+                                        ) : (
+                                        <div className="grid gap-3">
+                                            <p className="text-sm font-semibold text-white">Selamat datang di KoSurvive!</p>
+                                            <div className="grid gap-2">
+                                                <Link
+                                                    href="/login"
+                                                    className="inline-flex items-center justify-center rounded-xl border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                                                >
+                                                    Masuk
+                                                </Link>
+                                                <Link
+                                                    href="/register"
+                                                    className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+                                                >
+                                                    Daftar
+                                                </Link>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={requestLogout}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition hover:bg-red-500"
-                                        >
-                                            <LogOut className="h-4 w-4" aria-hidden="true" />
-                                            Keluar
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="grid gap-3">
-                                        <p className="text-sm font-semibold text-white">Selamat datang di KoSurvive!</p>
-                                        <div className="grid gap-2">
-                                            <Link
-                                                href="/login"
-                                                className="inline-flex items-center justify-center rounded-xl border border-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
-                                            >
-                                                Masuk
-                                            </Link>
-                                            <Link
-                                                href="/register"
-                                                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-                                            >
-                                                Daftar
-                                            </Link>
-                                        </div>
-                                    </div>
                                 )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
                 )}
+                        </div>
             </div>
             </header>
 

@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server"
 import * as SupabaseSSR from "@supabase/ssr"
 
-import { getPublicSupabaseConfig, warnMissingSupabaseConfig } from "@/lib/env/public"
-import { ADMIN_COOKIE_NAME } from "@/lib/supabase/server-admin"
+import {
+  getPublicSupabaseConfig,
+  warnMissingSupabaseConfig,
+} from "@/lib/env/public"
+import { ADMIN_COOKIE_NAME, USER_COOKIE_NAME } from "@/lib/supabase/cookies"
 
-const PUBLIC_USER_PATHS = new Set(["/", "/login", "/register", "/auth/callback"])
+const PUBLIC_USER_PATHS = new Set([
+  "/",
+  "/login",
+  "/register",
+  "/auth/callback",
+])
 const AUTH_ONLY_PATHS = new Set(["/login", "/register"])
 
 export async function middleware(request: NextRequest) {
@@ -39,11 +47,9 @@ export async function middleware(request: NextRequest) {
         response.cookies.set({ name, value: "", ...options })
       },
     },
-    cookieOptions: isAdminRoute
-      ? {
-          name: ADMIN_COOKIE_NAME,
-        }
-      : undefined,
+    cookieOptions: {
+      name: isAdminRoute ? ADMIN_COOKIE_NAME : USER_COOKIE_NAME,
+    },
   })
 
   const {
@@ -55,7 +61,10 @@ export async function middleware(request: NextRequest) {
       if (request.nextUrl.pathname !== "/admin/login") {
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = "/admin/login"
-        if (request.nextUrl.pathname && request.nextUrl.pathname !== "/admin/login") {
+        if (
+          request.nextUrl.pathname &&
+          request.nextUrl.pathname !== "/admin/login"
+        ) {
           redirectUrl.searchParams.set("next", request.nextUrl.pathname)
         }
         return NextResponse.redirect(redirectUrl)
@@ -81,7 +90,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && (AUTH_ONLY_PATHS.has(request.nextUrl.pathname) || request.nextUrl.pathname === "/")) {
+  if (
+    user &&
+    (AUTH_ONLY_PATHS.has(request.nextUrl.pathname) ||
+      request.nextUrl.pathname === "/")
+  ) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/home"
     return NextResponse.redirect(redirectUrl)

@@ -100,8 +100,7 @@ export default function Feed() {
       setGallery({
         loading: false,
         items: [],
-        error:
-          "Supabase belum dikonfigurasi. Tambahkan NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY untuk menampilkan galeri storage.",
+        error: "Kurasi visual belum aktif. Hubungi admin untuk melengkapi konfigurasi.",
       });
       return;
     }
@@ -135,30 +134,30 @@ export default function Feed() {
             item.file_path ??
             (item.bucket || item.storage_bucket
               ? {
-                  bucket: item.bucket ?? item.storage_bucket,
-                  path:
-                    item.path ??
-                    item.storage_path ??
-                    item.file_path ??
-                    "",
-                }
+                bucket: item.bucket ?? item.storage_bucket,
+                path:
+                  item.path ??
+                  item.storage_path ??
+                  item.file_path ??
+                  "",
+              }
               : null);
 
           const numericPrice =
             typeof item.price === "number"
               ? item.price
               : typeof item.price === "string" &&
-                  item.price.trim() !== "" &&
-                  !Number.isNaN(Number(item.price))
-              ? Number(item.price)
-              : null;
+                item.price.trim() !== "" &&
+                !Number.isNaN(Number(item.price))
+                ? Number(item.price)
+                : null;
 
           const priceLabel =
             numericPrice !== null
               ? `≈ Rp${Math.round(numericPrice).toLocaleString("id-ID")}`
               : typeof item.price === "string" && item.price.trim() !== ""
-              ? item.price
-              : null;
+                ? item.price
+                : null;
 
           return {
             id: item.id ?? `gallery-${index}`,
@@ -178,18 +177,18 @@ export default function Feed() {
           items: hydrated,
           error:
             hydrated.length === 0
-              ? "Belum ada data di tabel public_recipe_gallery. Upload gambar melalui aplikasi admin untuk menampilkannya di sini."
+              ? "Belum ada galeri menu yang bisa ditampilkan. Tim admin akan segera menambahkan koleksi baru."
               : null,
         });
       } catch (error) {
         if (ignore) return;
-        console.warn("Gagal memuat galeri Supabase:", error);
+        console.warn("Gagal memuat galeri rekomendasi:", error);
         setGallery({
           loading: false,
           items: [],
           error:
             error?.message ??
-            "Gagal memuat konten dari Supabase. Pastikan tabel public_recipe_gallery tersedia dan akses storage publik sudah diberikan.",
+            "Konten belum bisa dimuat. Silakan coba lagi beberapa saat lagi.",
         });
       }
     };
@@ -328,10 +327,10 @@ export default function Feed() {
       <section className="rounded-3xl border border-slate-800/70 bg-slate-950/60 p-6 shadow-inner shadow-slate-950/40">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-white">Konten terbaru dari Supabase Storage</h2>
+            <h2 className="text-xl font-semibold text-white">Galeri menu pilihan komunitas</h2>
             <p className="text-sm text-slate-300">
-              Semua gambar di bawah ini diambil langsung dari bucket publik Supabase. Admin cukup mengunggah file dari aplikasi
-              pengelola untuk memperbarui konten tanpa deploy ulang.
+              Ini kumpulan resep yang lagi trending di KoSurvive. Setiap unggahan admin langsung muncul di sini supaya kamu bisa
+              mencicipi inspirasi terbaru tanpa menunggu update aplikasi.
             </p>
           </div>
           <span className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
@@ -508,11 +507,10 @@ export default function Feed() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => act(r.id, "like")}
-                        className={`btn transition ${
-                          r.liked
+                        className={`btn transition ${r.liked
                             ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
                             : "btn-outline border-emerald-400/40 bg-slate-900/60 text-slate-100 hover:bg-emerald-500/10"
-                        }`}
+                          }`}
                         aria-pressed={r.liked}
                         disabled={pendingAction === `${r.id}:like`}
                       >
@@ -525,9 +523,8 @@ export default function Feed() {
                       </button>
                       <button
                         onClick={() => act(r.id, "save")}
-                        className={`btn btn-primary transition ${
-                          r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
-                        }`}
+                        className={`btn btn-primary transition ${r.saved ? "border-emerald-400 bg-emerald-500/20 text-emerald-100" : ""
+                          }`}
                         aria-pressed={r.saved}
                         disabled={pendingAction === `${r.id}:save`}
                       >
